@@ -1,0 +1,3090 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning ST 2026 - 2027 par FB</title>
+<link rel="icon" type="image/png" href="favicon.png">
+    <!-- Chargement de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Police Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icônes Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+
+        /* Barre de défilement horizontale du planning */
+        .planning-scroll::-webkit-scrollbar {
+            height: 10px;
+            width: 10px;
+        }
+        .planning-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
+        .planning-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+        }
+        .planning-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Cellules demi-journée interactives */
+        .half-day-cell {
+            transition: box-shadow 0.08s ease, filter 0.08s ease;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        .half-day-cell:hover {
+            box-shadow: inset 0 0 0 2px #0f172a;
+            z-index: 10;
+        }
+
+        /* Mise en surbrillance de la recherche par date ou par motif */
+        .cell-search-match {
+            box-shadow: inset 0 0 0 2.5px #1d4ed8, 0 0 8px rgba(37, 99, 235, 0.55) !important;
+            z-index: 14 !important;
+            animation: pulseHighlight 1.8s infinite ease-in-out;
+        }
+        .cell-search-dimmed {
+            opacity: 0.28;
+            filter: grayscale(40%);
+        }
+        .col-date-highlight {
+            background-color: #dbeafe !important;
+            color: #1e3a8a !important;
+            box-shadow: inset 0 -2px 0 #2563eb;
+        }
+        @keyframes pulseHighlight {
+            0%, 100% { box-shadow: inset 0 0 0 2px #1d4ed8, 0 0 4px rgba(37, 99, 235, 0.4); }
+            50% { box-shadow: inset 0 0 0 2.5px #f59e0b, 0 0 10px rgba(245, 158, 11, 0.65); }
+        }
+
+        /* Colonne figée des agents */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+        }
+        .sticky-col-header {
+            position: sticky;
+            left: 0;
+            z-index: 25;
+        }
+
+        /* Impression paysage propre */
+        @media print {
+            @page {
+                size: landscape;
+                margin: 7mm;
+            }
+            body {
+                background: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .planning-card {
+                box-shadow: none !important;
+                border: 1px solid #94a3b8 !important;
+                break-inside: avoid;
+                margin-bottom: 12px !important;
+            }
+            .planning-scroll {
+                overflow: visible !important;
+            }
+            table {
+                width: 100% !important;
+                font-size: 7.5px !important;
+            }
+            th, td {
+                padding: 1px !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- EN-TÊTE SERVICES TECHNIQUES - MAIRIE DE SÉEZ -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+        <div class="max-w-[1680px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Identité Collectivité & Service -->
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-700 to-sky-500 text-white flex items-center justify-center shadow-md shadow-blue-600/20 shrink-0">
+                    <i data-lucide="calendar-range" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Services Techniques — Mairie de Séez</h1>
+                        <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200">Oct 2026 → Déc 2027 (15 mois)</span>
+                    </div>
+                    <p class="text-xs text-slate-500">Gestion des congés, récupérations, formations, repos alternés et astreintes</p>
+                </div>
+            </div>
+
+            <!-- Actions Globales -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Bouton Principal + Demande de congés... -->
+                <button id="btn-open-modal" type="button"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm shadow-md shadow-blue-600/25 transition cursor-pointer">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>+ Demande de congés...</span>
+                </button>
+
+                <!-- Export CSV -->
+                <button id="btn-export-csv" type="button"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs transition cursor-pointer"
+                    title="Exporter le planning au format CSV compatible Excel">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                    <span class="hidden sm:inline">Export CSV</span>
+                </button>
+
+                <!-- Export / Import JSON -->
+                <button id="btn-export-json" type="button"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs transition cursor-pointer"
+                    title="Sauvegarder toutes les données au format JSON">
+                    <i data-lucide="download" class="w-4 h-4 text-blue-600"></i>
+                    <span class="hidden md:inline">Sauvegarde JSON</span>
+                </button>
+
+                <label for="input-import-json"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs transition cursor-pointer"
+                    title="Restaurer une sauvegarde JSON">
+                    <i data-lucide="upload" class="w-4 h-4 text-amber-600"></i>
+                    <span class="hidden md:inline">Importer JSON</span>
+                </label>
+                <input type="file" id="input-import-json" accept=".json" class="hidden">
+
+                <!-- Impression / PDF -->
+                <button id="btn-print" type="button"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs transition cursor-pointer"
+                    title="Imprimer ou enregistrer en PDF paysage">
+                    <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
+                    <span class="hidden sm:inline">Imprimer / PDF</span>
+                </button>
+
+                <!-- Réinitialiser depuis Excel Oct 2026 -->
+                <button id="btn-reset-excel" type="button"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-semibold text-xs transition cursor-pointer"
+                    title="Restaurer les données exactes extraites du fichier Excel depuis Octobre 2026">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span class="hidden xl:inline">Réinitialiser depuis Excel Oct 2026</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- BARRE D'ONGLETS PRINCIPAUX -->
+        <div class="bg-slate-50 border-t border-slate-200 px-4 sm:px-6">
+            <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-2 py-2">
+                <nav class="flex flex-wrap items-center gap-1.5" aria-label="Onglets principaux">
+                    <button type="button" data-main-tab="planning"
+                        class="main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <span>Planning Oct 2026 – Déc 2027</span>
+                    </button>
+                    <button type="button" data-main-tab="daily"
+                        class="main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-white hover:text-slate-900 transition cursor-pointer">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Tableau de bord journalier</span>
+                    </button>
+                    <button type="button" data-main-tab="search"
+                        class="main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-white hover:text-slate-900 transition cursor-pointer">
+                        <i data-lucide="search-check" class="w-4 h-4"></i>
+                        <span>Recherche & Disponibilités</span>
+                        <span id="search-count-badge" class="hidden px-2 py-0.5 text-[11px] rounded-full bg-blue-100 text-blue-800 font-bold">0</span>
+                    </button>
+                    <button type="button" data-main-tab="counters"
+                        class="main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-white hover:text-slate-900 transition cursor-pointer">
+                        <i data-lucide="calculator" class="w-4 h-4"></i>
+                        <span>Compteurs & Soldes par Agent</span>
+                    </button>
+                    <button type="button" data-main-tab="history"
+                        class="main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-white hover:text-slate-900 transition cursor-pointer">
+                        <i data-lucide="list-checks" class="w-4 h-4"></i>
+                        <span>Historique des demandes & annotations</span>
+                        <span id="history-count-badge" class="px-2 py-0.5 text-[11px] rounded-full bg-slate-200 text-slate-700 font-bold">0</span>
+                    </button>
+                </nav>
+
+                <!-- Indicateur sauvegarde automatique -->
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Sauvegarde locale active</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="flex-1 max-w-[1680px] w-full mx-auto px-4 sm:px-6 py-4 space-y-4">
+
+        <!-- ===================================================================== -->
+        <!-- BARRE GLOBALE DE RECHERCHE PAR DATE, PLAGE OU MOTIF                   -->
+        <!-- ===================================================================== -->
+        <section class="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 shadow-xs space-y-3 no-print">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                    </div>
+                    <h2 class="text-xs sm:text-sm font-extrabold text-slate-800">Recherche rapide par date, plage ou motif</h2>
+                    <span id="active-search-indicator" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        Filtre actif
+                    </span>
+                </div>
+
+                <!-- Raccourcis temporels rapides -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="text-[11px] font-semibold text-slate-400 mr-1">Raccourcis :</span>
+                    <button type="button" data-quick-range="today" class="quick-range-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200 transition cursor-pointer">Aujourd'hui</button>
+                    <button type="button" data-quick-range="week" class="quick-range-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200 transition cursor-pointer">Cette semaine</button>
+                    <button type="button" data-quick-range="month" class="quick-range-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200 transition cursor-pointer">Ce mois</button>
+                    <button type="button" data-quick-range="end2026" class="quick-range-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200 transition cursor-pointer">Fin 2026</button>
+                    <button type="button" data-quick-range="year2027" class="quick-range-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200 transition cursor-pointer">Année 2027</button>
+                </div>
+            </div>
+
+            <!-- Champs multicritères -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-end">
+                <!-- Type de recherche date -->
+                <div class="lg:col-span-2">
+                    <label for="global-date-mode" class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Mode date</label>
+                    <select id="global-date-mode"
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <option value="exact">Date précise</option>
+                        <option value="range">Plage (Du ... Au ...)</option>
+                    </select>
+                </div>
+
+                <!-- Date précise / Date début -->
+                <div id="wrap-global-date-start" class="lg:col-span-2">
+                    <label id="lbl-global-date-start" for="global-date-start" class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Date</label>
+                    <input type="date" id="global-date-start" min="2026-10-01" max="2027-12-31"
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Date fin (visible uniquement en mode Plage) -->
+                <div id="wrap-global-date-end" class="hidden lg:col-span-2">
+                    <label for="global-date-end" class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Au</label>
+                    <input type="date" id="global-date-end" min="2026-10-01" max="2027-12-31"
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Motif -->
+                <div class="lg:col-span-2">
+                    <label for="global-motif-filter" class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Motif</label>
+                    <select id="global-motif-filter"
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <!-- Rempli par JS -->
+                    </select>
+                </div>
+
+                <!-- Équipe -->
+                <div class="lg:col-span-2">
+                    <label for="filter-team" class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Équipe</label>
+                    <select id="filter-team"
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <option value="all">Toutes (14 agents)</option>
+                        <option value="rt">RT (Fabien B)</option>
+                        <option value="eq1">Équipe 1 (5 agents)</option>
+                        <option value="eq2">Équipe 2 (5 agents)</option>
+                        <option value="saisonnier">Saisonnier / Renfort</option>
+                        <option value="ald">ALD (Fabrice)</option>
+                    </select>
+                </div>
+
+                <!-- Recherche texte libre (Nom / Commentaire) -->
+                <div id="wrap-global-text" class="lg:col-span-2">
+                    <label for="filter-search" class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Agent / Commentaire</label>
+                    <div class="relative">
+                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="filter-search" placeholder="Nom ou commentaire..."
+                            class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Boutons d'action recherche -->
+                <div class="lg:col-span-2 flex items-center gap-1.5">
+                    <button id="btn-view-search-results" type="button"
+                        class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                        title="Ouvrir la vue détaillée des résultats et disponibilités">
+                        <i data-lucide="list-filter" class="w-3.5 h-3.5 text-sky-400"></i>
+                        <span>Résultats</span>
+                    </button>
+                    <button id="btn-reset-search-filters" type="button"
+                        class="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-slate-700 font-semibold text-xs transition cursor-pointer"
+                        title="Réinitialiser tous les filtres de recherche">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- ONGLET 1 : PLANNING OCT 2026 – DÉC 2027                               -->
+        <!-- ===================================================================== -->
+        <div id="tab-content-planning" class="space-y-4">
+
+            <!-- BARRE D'OUTILS, NAVIGATION MENSUELLE ET LÉGENDE INTERACTIVE -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3.5 no-print">
+                <!-- Ligne 1 : Mode d'affichage, Navigation mois & Option Trame de fond -->
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <!-- Sélecteur Vue Focus par Mois vs Vue Annuelle empilée -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+                            <button id="btn-mode-month" type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-700 shadow-xs transition cursor-pointer">
+                                Focus par Mois
+                            </button>
+                            <button id="btn-mode-annual" type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">
+                                Vue Empilée (15 mois)
+                            </button>
+                        </div>
+
+                        <!-- Navigation rapide mois précédent / suivant (visible en mode Focus) -->
+                        <div id="month-nav-controls" class="flex items-center gap-1.5">
+                            <button id="btn-prev-month" type="button"
+                                class="p-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                                title="Mois précédent">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <select id="select-month-dropdown"
+                                class="bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                <!-- Rempli par JS : OCT 26 -> DEC 27 -->
+                            </select>
+                            <button id="btn-next-month" type="button"
+                                class="p-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                                title="Mois suivant">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Option Trame de fond -->
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none">
+                            <input type="checkbox" id="toggle-background-grid" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                            <span class="text-xs font-semibold text-slate-700">Repos alternés & Astreintes</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Ruban des 15 onglets mensuels (OCT 26 à DEC 27) -->
+                <div id="month-pills-bar" class="flex items-center gap-1 overflow-x-auto pb-1">
+                    <!-- Rempli par JS -->
+                </div>
+
+                <!-- Ligne 2 : Légende interactive (cliquable pour filtrer par motif) + Pinceau rapide -->
+                <div class="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <!-- Légende des 8 statuts -->
+                    <div id="legend-container" class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <!-- Rempli par JS -->
+                    </div>
+
+                    <!-- Sélecteur Pinceau rapide au clic sur cellule -->
+                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                        <i data-lucide="paintbrush" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="text-xs font-semibold text-slate-600">Clic sur case :</span>
+                        <select id="quick-brush-select"
+                            class="bg-white border border-slate-300 text-slate-900 text-xs font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                            <!-- Rempli par JS -->
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CONTENEUR DES GRILLES MENSUELLES -->
+            <div id="planning-grids-wrapper" class="space-y-6">
+                <!-- Généré dynamiquement par JS -->
+            </div>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- ONGLET 1B : TABLEAU DE BORD JOURNALIER                                -->
+        <!-- ===================================================================== -->
+        <div id="tab-content-daily" class="hidden space-y-4">
+            <!-- Barre de sélection et navigation du jour -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center shrink-0">
+                        <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 id="daily-title-date" class="text-base sm:text-lg font-extrabold text-slate-900 capitalize">Mardi 24 Novembre 2026</h2>
+                        <p id="daily-subtitle-info" class="text-xs text-slate-500">Semaine 48 • Effectif théorique : 14 agents (13 actifs + 1 ALD)</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="btn-daily-prev" type="button"
+                        class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition cursor-pointer"
+                        title="Jour précédent">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        <span>Veille</span>
+                    </button>
+                    <input type="date" id="daily-date-picker" min="2026-10-01" max="2027-12-31"
+                        class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="btn-daily-next" type="button"
+                        class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition cursor-pointer"
+                        title="Jour suivant">
+                        <span>Lendemain</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                    <button id="btn-daily-today" type="button"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer">
+                        <i data-lucide="crosshair" class="w-3.5 h-3.5 text-sky-400"></i>
+                        <span>Aujourd'hui</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Cartes KPIs du jour -->
+            <div id="daily-kpi-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <!-- Rempli dynamiquement par JS -->
+            </div>
+
+            <!-- Répartition par Équipe & Compteurs par Motif -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <!-- Par Équipe (Matin & Après-midi) -->
+                <section class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
+                            <span>Effectifs présents par équipe (Matin / Après-midi)</span>
+                        </h3>
+                        <span class="text-[11px] font-semibold text-slate-400">Jauge de disponibilité</span>
+                    </div>
+                    <div id="daily-teams-breakdown" class="space-y-3">
+                        <!-- Rempli dynamiquement par JS -->
+                    </div>
+                </section>
+
+                <!-- Répartition par Motif du jour -->
+                <section class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-amber-600"></i>
+                            <span>Décompte par motif du jour</span>
+                        </h3>
+                        <span class="text-[11px] font-semibold text-slate-400">M / AM</span>
+                    </div>
+                    <div id="daily-motifs-breakdown" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- Rempli dynamiquement par JS -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Feuille de présence nominative du jour -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-600"></i>
+                            <span>Feuille de présence nominative du jour</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Cliquez sur une demi-journée (Matin ou Après-midi) pour modifier directement le statut de l'agent.</p>
+                    </div>
+                    <button type="button" id="btn-daily-open-planning"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition cursor-pointer">
+                        <i data-lucide="calendar-search" class="w-3.5 h-3.5"></i>
+                        <span>Voir ce jour sur le planning</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-y border-slate-200 text-slate-600 font-bold">
+                                <th class="text-left py-2.5 px-3">Agent</th>
+                                <th class="text-left py-2.5 px-3">Équipe</th>
+                                <th class="text-center py-2.5 px-3">Matin (08h00 – 12h00)</th>
+                                <th class="text-center py-2.5 px-3">Après-midi (13h30 – 17h00)</th>
+                                <th class="text-left py-2.5 px-3">Commentaire / Détail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="daily-roster-tbody" class="divide-y divide-slate-100">
+                            <!-- Rempli dynamiquement par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- ONGLET 2 : RECHERCHE & DISPONIBILITÉS                                 -->
+        <!-- ===================================================================== -->
+        <div id="tab-content-search" class="hidden space-y-4">
+            <!-- Cartes de synthèse : Présents terrain vs Absents / Congés / Astreintes -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Carte Agents Présents Disponibles sur le terrain -->
+                <section class="bg-white rounded-2xl border border-emerald-200 p-4 sm:p-5 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between gap-2 border-b border-emerald-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                <i data-lucide="user-check" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-900">Agents présents disponibles sur le terrain</h3>
+                                <p id="search-present-subtitle" class="text-[11px] text-slate-500">Effectif disponible sur la période sélectionnée</p>
+                            </div>
+                        </div>
+                        <span id="search-present-count" class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800">0</span>
+                    </div>
+                    <div id="search-present-list" class="flex flex-wrap gap-2">
+                        <!-- Rempli par JS -->
+                    </div>
+                </section>
+
+                <!-- Carte Synthèse Absents / Congés / Repos / Astreintes -->
+                <section class="bg-white rounded-2xl border border-blue-200 p-4 sm:p-5 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between gap-2 border-b border-blue-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                                <i data-lucide="user-minus" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-900">Synthèse des absences, congés, repos & astreintes</h3>
+                                <p id="search-absent-subtitle" class="text-[11px] text-slate-500">Agents concernés par les critères actifs</p>
+                            </div>
+                        </div>
+                        <span id="search-absent-count" class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-800">0</span>
+                    </div>
+                    <div id="search-absent-summary" class="flex flex-wrap gap-2">
+                        <!-- Rempli par JS -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tableau détaillé des entrées correspondantes -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                    <div>
+                        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="table-properties" class="w-5 h-5 text-blue-600"></i>
+                            <span>Détail des entrées correspondantes</span>
+                        </h3>
+                        <p id="search-results-caption" class="text-xs text-slate-500 mt-0.5">
+                            Utilisez la barre de recherche ci-dessus pour filtrer par date précise, plage de dates ou motif.
+                        </p>
+                    </div>
+                    <button type="button" id="btn-reset-search-filters-secondary"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition cursor-pointer">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Réinitialiser les filtres</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-y border-slate-200 text-slate-600 font-bold">
+                                <th class="text-left py-2.5 px-3">Agent</th>
+                                <th class="text-left py-2.5 px-3">Équipe</th>
+                                <th class="text-left py-2.5 px-3">Motif</th>
+                                <th class="text-left py-2.5 px-3">Début (M/AM)</th>
+                                <th class="text-left py-2.5 px-3">Fin (M/AM)</th>
+                                <th class="text-center py-2.5 px-3">Durée (j)</th>
+                                <th class="text-left py-2.5 px-3">Statut / Source</th>
+                                <th class="text-left py-2.5 px-3">Commentaire</th>
+                                <th class="text-right py-2.5 px-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="search-results-tbody" class="divide-y divide-slate-100">
+                            <!-- Rempli par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- ONGLET 3 : COMPTEURS & SOLDES PAR AGENT                               -->
+        <!-- ===================================================================== -->
+        <div id="tab-content-counters" class="hidden space-y-4">
+            <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-600"></i>
+                            <span>Compteurs & Soldes par Agent (Oct–Déc 2026 et Année 2027)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Calcul automatique en jours ouvrés (1 demi-journée = 0,5 j). Le solde de congés 2027 est modifiable directement dans la colonne dédiée.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 font-semibold">Fin 2026 : Oct → Déc 2026</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-semibold">Année 2027 : Jan → Déc 2027</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900 text-white">
+                                <th rowspan="2" class="text-left py-2.5 px-3 border border-slate-700 font-bold">Agent</th>
+                                <th rowspan="2" class="text-left py-2.5 px-2.5 border border-slate-700 font-bold">Équipe</th>
+                                <th colspan="4" class="text-center py-1.5 px-2 border border-slate-700 bg-slate-800 font-bold text-sky-300">FIN 2026 (Oct – Déc 2026)</th>
+                                <th colspan="8" class="text-center py-1.5 px-2 border border-slate-700 bg-blue-950 font-bold text-blue-200">ANNÉE 2027 (Jan – Déc 2027)</th>
+                            </tr>
+                            <tr class="bg-slate-100 text-slate-700 font-bold">
+                                <th class="py-2 px-2 border border-slate-300 text-center">Congés</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Récup.</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Form.</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Abs/Astr</th>
+
+                                <th class="py-2 px-2 border border-slate-300 text-center bg-blue-50/70">Droit CP 27</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center bg-blue-50/70">CP Posés 27</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center bg-blue-100/80 text-blue-900">Solde CP 27</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Récup.</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Form.</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Maladie</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">ASA</th>
+                                <th class="py-2 px-2 border border-slate-300 text-center">Abs/Astr</th>
+                            </tr>
+                        </thead>
+                        <tbody id="counters-tbody" class="divide-y divide-slate-200">
+                            <!-- Rempli par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- ONGLET 4 : HISTORIQUE DES DEMANDES & ANNOTATIONS                      -->
+        <!-- ===================================================================== -->
+        <div id="tab-content-history" class="hidden space-y-4">
+            <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="history" class="w-5 h-5 text-blue-600"></i>
+                            <span>Historique des demandes & annotations (Octobre 2026 – Décembre 2027)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Retrouvez toutes les annotations reprises de votre fichier Excel ainsi que les nouvelles demandes saisies.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="history-filter-agent"
+                            class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">
+                            <option value="all">Tous les agents</option>
+                        </select>
+                        <select id="history-filter-motif"
+                            class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">
+                            <option value="all">Tous les motifs</option>
+                        </select>
+                        <select id="history-filter-source"
+                            class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">
+                            <option value="all">Toutes origines</option>
+                            <option value="excel">Repris Excel 2026/27</option>
+                            <option value="user">Nouvelle demande</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-y border-slate-200 text-slate-600 font-bold">
+                                <th class="text-left py-2.5 px-3">Agent</th>
+                                <th class="text-left py-2.5 px-3">Équipe</th>
+                                <th class="text-left py-2.5 px-3">Motif</th>
+                                <th class="text-left py-2.5 px-3">Début</th>
+                                <th class="text-left py-2.5 px-3">Fin</th>
+                                <th class="text-center py-2.5 px-3">Durée (j)</th>
+                                <th class="text-left py-2.5 px-3">Origine</th>
+                                <th class="text-left py-2.5 px-3">Commentaire</th>
+                                <th class="text-right py-2.5 px-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody" class="divide-y divide-slate-100">
+                            <!-- Rempli par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- MODALE : FORMULAIRE "+ DEMANDE DE CONGÉS..."                              -->
+    <!-- ========================================================================= -->
+    <div id="request-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
+            <!-- Header Modale -->
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300">
+                        <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-title" class="font-bold text-base">Demande de congés / absence</h3>
+                        <p class="text-xs text-slate-300">Services Techniques — Mairie de Séez (Oct 2026 – Déc 2027)</p>
+                    </div>
+                </div>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Corps Formulaire -->
+            <form id="leave-form" class="p-5 space-y-4">
+                <input type="hidden" id="edit-request-id" value="">
+
+                <!-- Agent -->
+                <div>
+                    <label for="form-agent" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Agent concerné <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="form-agent" required
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <!-- Rempli par JS groupé par équipe -->
+                    </select>
+                </div>
+
+                <!-- Motif avec pastille couleur -->
+                <div>
+                    <label for="form-motif" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Motif de la demande <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <span id="form-motif-swatch" class="w-9 h-10 rounded-xl border border-slate-300 shrink-0 shadow-inner transition-colors" style="background-color: #00B0F0;"></span>
+                        <select id="form-motif" required
+                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <!-- Rempli par JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Date de début + Demi-journée -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="form-start-date" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Date de début <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="date" id="form-start-date" min="2026-10-01" max="2027-12-31" value="2026-11-25" required
+                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="form-start-period" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Début (Demi-journée) <span class="text-rose-500">*</span>
+                        </label>
+                        <select id="form-start-period"
+                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="M">Matin (dès 08h00)</option>
+                            <option value="AM">Après-midi (dès 13h30)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Date de fin + Demi-journée -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="form-end-date" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Date de fin <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="date" id="form-end-date" min="2026-10-01" max="2027-12-31" value="2026-11-25" required
+                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="form-end-period" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Fin (Demi-journée) <span class="text-rose-500">*</span>
+                        </label>
+                        <select id="form-end-period"
+                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="M">Matin (jusqu'à 12h00)</option>
+                            <option value="AM" selected>Après-midi (jusqu'à 17h00)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Commentaire optionnel -->
+                <div>
+                    <label for="form-comment" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Commentaire (optionnel)
+                    </label>
+                    <input type="text" id="form-comment" placeholder="Ex. Solde congés automne, récupération heures..."
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Calcul temps réel + Alertes équipe / chevauchement -->
+                <div class="space-y-2">
+                    <div id="form-calc-box" class="rounded-xl bg-blue-50 border border-blue-200 px-3.5 py-2.5 text-xs text-blue-950 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                        <span id="form-calc-text">Durée calculée : 1 jour ouvré (hors week-ends et jours fériés).</span>
+                    </div>
+
+                    <div id="form-warning-box" class="hidden rounded-xl bg-amber-50 border border-amber-300 px-3.5 py-2.5 text-xs text-amber-900 flex items-start gap-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                        <span id="form-warning-text"></span>
+                    </div>
+
+                    <div id="form-error-box" class="hidden rounded-xl bg-rose-50 border border-rose-300 px-3.5 py-2.5 text-xs font-semibold text-rose-800"></div>
+                </div>
+
+                <!-- Actions Modale -->
+                <div class="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                    <button type="button"
+                        class="close-modal-btn px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition cursor-pointer">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/20 transition cursor-pointer">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Valider la demande</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SCRIPT APPLICATION COMPLÈTE (OCT 2026 - DÉC 2027)                         -->
+    <!-- ========================================================================= -->
+    <script>
+        /**
+         * 1. RÉFÉRENTIEL AGENTS, ÉQUIPES ET STATUTS (SERVICES TECHNIQUES - MAIRIE DE SÉEZ)
+         */
+        const TEAMS = [
+            {
+                id: 'rt',
+                label: 'RT',
+                fullName: 'Responsable Technique (RT)',
+                badgeClass: 'bg-slate-800 text-white',
+                agents: ['Fabien B']
+            },
+            {
+                id: 'eq1',
+                label: 'Équipe 1',
+                fullName: 'Équipe 1',
+                badgeClass: 'bg-blue-100 text-blue-800',
+                agents: ['Bertrand', 'Nicolas', 'Romain', 'Lionel', 'David B']
+            },
+            {
+                id: 'eq2',
+                label: 'Équipe 2',
+                fullName: 'Équipe 2',
+                badgeClass: 'bg-emerald-100 text-emerald-800',
+                agents: ['Eric A', 'Fabien G', 'Louis', 'Thierry', 'Jean-Paul']
+            },
+            {
+                id: 'saisonnier',
+                label: 'Saisonnier',
+                fullName: 'Saisonnier / Renfort',
+                badgeClass: 'bg-purple-100 text-purple-800',
+                agents: ['Yannick V', 'Fabrice P']
+            },
+            {
+                id: 'ald',
+                label: 'ALD',
+                fullName: 'ALD',
+                badgeClass: 'bg-amber-100 text-amber-800',
+                agents: ['Fabrice']
+            }
+        ];
+
+        const ALL_AGENTS = TEAMS.flatMap(t =>
+            t.agents.map(name => ({
+                name,
+                teamId: t.id,
+                teamLabel: t.label,
+                teamFullName: t.fullName,
+                badgeClass: t.badgeClass
+            }))
+        );
+
+        const AGENT_MAP = Object.fromEntries(ALL_AGENTS.map(a => [a.name, a]));
+
+        // Dates de fin de contrat (dernier jour travaillé inclus)
+        const CONTRACT_END_DATES = {
+            'Fabrice P': '2026-10-30',
+            'Yannick V': '2026-11-10'
+        };
+
+        function isContractEndedOn(agentName, isoDate) {
+            const endIso = CONTRACT_END_DATES[agentName];
+            return Boolean(endIso && isoDate > endIso);
+        }
+
+        const MOTIFS = [
+            { id: 'conges',    label: 'Congés',             color: '#00B0F0', textColor: '#ffffff' },
+            { id: 'recup',     label: 'Récupérations',      color: '#70AD47', textColor: '#ffffff' },
+            { id: 'maladie',   label: 'Arrêt maladie',      color: '#EFEF11', textColor: '#0f172a' },
+            { id: 'asa',       label: 'ASA',                color: '#9FE1F9', textColor: '#0f172a' },
+            { id: 'repos',     label: 'Repos',              color: '#FBAFEB', textColor: '#0f172a' },
+            { id: 'formation', label: 'Formation',          color: '#FFC000', textColor: '#0f172a' },
+            { id: 'ferie',     label: 'Férié',              color: '#C6E0B4', textColor: '#0f172a' },
+            { id: 'absent',    label: 'Absent / Astreinte', color: '#FF0000', textColor: '#ffffff' }
+        ];
+
+        const MOTIF_MAP = Object.fromEntries(MOTIFS.map(m => [m.id, m]));
+
+        // Liste des 15 mois : Octobre 2026 -> Décembre 2027
+        const MONTHS_LIST = [
+            { index: 0,  year: 2026, month: 9,  shortCode: 'OCT 26', label: 'OCTOBRE 2026' },
+            { index: 1,  year: 2026, month: 10, shortCode: 'NOV 26', label: 'NOVEMBRE 2026' },
+            { index: 2,  year: 2026, month: 11, shortCode: 'DEC 26', label: 'DÉCEMBRE 2026' },
+            { index: 3,  year: 2027, month: 0,  shortCode: 'JAN 27', label: 'JANVIER 2027' },
+            { index: 4,  year: 2027, month: 1,  shortCode: 'FEV 27', label: 'FÉVRIER 2027' },
+            { index: 5,  year: 2027, month: 2,  shortCode: 'MAR 27', label: 'MARS 2027' },
+            { index: 6,  year: 2027, month: 3,  shortCode: 'AVR 27', label: 'AVRIL 2027' },
+            { index: 7,  year: 2027, month: 4,  shortCode: 'MAI 27', label: 'MAI 2027' },
+            { index: 8,  year: 2027, month: 5,  shortCode: 'JUN 27', label: 'JUIN 2027' },
+            { index: 9,  year: 2027, month: 6,  shortCode: 'JUL 27', label: 'JUILLET 2027' },
+            { index: 10, year: 2027, month: 7,  shortCode: 'AOU 27', label: 'AOÛT 2027' },
+            { index: 11, year: 2027, month: 8,  shortCode: 'SEP 27', label: 'SEPTEMBRE 2027' },
+            { index: 12, year: 2027, month: 9,  shortCode: 'OCT 27', label: 'OCTOBRE 2027' },
+            { index: 13, year: 2027, month: 10, shortCode: 'NOV 27', label: 'NOVEMBRE 2027' },
+            { index: 14, year: 2027, month: 11, shortCode: 'DEC 27', label: 'DÉCEMBRE 2027' }
+        ];
+
+        const DAYS_SHORT_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+        // Jours fériés officiels Oct 2026 -> Déc 2027
+        const PUBLIC_HOLIDAYS = new Set([
+            '2026-11-11', '2026-12-25',
+            '2027-01-01', '2027-03-29', '2027-05-01', '2027-05-06',
+            '2027-05-08', '2027-05-17', '2027-07-14', '2027-08-15',
+            '2027-11-01', '2027-11-11', '2027-12-25'
+        ]);
+
+        // Astreintes hiver 2026-2027 (Absent / Astreinte #FF0000)
+        const WINTER_ASTREINTES = [
+            { agent: 'Thierry',   startDate: '2026-11-26', startPeriod: 'AM', endDate: '2026-12-03', endPeriod: 'M' },
+            { agent: 'Thierry',   startDate: '2027-03-18', startPeriod: 'AM', endDate: '2027-03-25', endPeriod: 'M' },
+            { agent: 'Bertrand',  startDate: '2026-12-03', startPeriod: 'AM', endDate: '2026-12-10', endPeriod: 'M' },
+            { agent: 'Bertrand',  startDate: '2027-03-11', startPeriod: 'AM', endDate: '2027-03-18', endPeriod: 'M' },
+            { agent: 'Jean-Paul', startDate: '2026-12-10', startPeriod: 'AM', endDate: '2026-12-17', endPeriod: 'M' },
+            { agent: 'Lionel',    startDate: '2026-12-17', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'M' },
+            { agent: 'Lionel',    startDate: '2027-01-28', startPeriod: 'AM', endDate: '2027-02-04', endPeriod: 'M' },
+            { agent: 'Fabien B',  startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'M' },
+            { agent: 'Fabien B',  startDate: '2027-02-18', startPeriod: 'AM', endDate: '2027-02-25', endPeriod: 'M' },
+            { agent: 'David B',   startDate: '2026-12-31', startPeriod: 'AM', endDate: '2027-01-07', endPeriod: 'M' },
+            { agent: 'David B',   startDate: '2027-02-25', startPeriod: 'AM', endDate: '2027-03-04', endPeriod: 'M' },
+            { agent: 'Louis',     startDate: '2027-01-07', startPeriod: 'AM', endDate: '2027-01-14', endPeriod: 'M' },
+            { agent: 'Louis',     startDate: '2027-02-04', startPeriod: 'AM', endDate: '2027-02-11', endPeriod: 'M' },
+            { agent: 'Romain',    startDate: '2027-01-14', startPeriod: 'AM', endDate: '2027-01-21', endPeriod: 'M' },
+            { agent: 'Romain',    startDate: '2027-02-11', startPeriod: 'AM', endDate: '2027-02-18', endPeriod: 'M' },
+            { agent: 'Eric A',    startDate: '2027-01-21', startPeriod: 'M',  endDate: '2027-01-28', endPeriod: 'M' },
+            { agent: 'Eric A',    startDate: '2027-03-04', startPeriod: 'AM', endDate: '2027-03-11', endPeriod: 'M' },
+            { agent: 'Nicolas',   startDate: '2027-03-25', startPeriod: 'AM', endDate: '2027-03-31', endPeriod: 'AM' }
+        ];
+
+        // Annotations initiales extraites du fichier Excel depuis Octobre 2026
+        const INITIAL_EXCEL_REQUESTS = [
+            // Fabien B
+            { agent: 'Fabien B', motif: 'recup',     startDate: '2026-10-23', startPeriod: 'M',  endDate: '2026-10-23', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Fabien B', motif: 'recup',     startDate: '2026-10-28', startPeriod: 'AM', endDate: '2026-10-28', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Fabien B', motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Fabien B', motif: 'formation', startDate: '2026-12-16', startPeriod: 'M',  endDate: '2026-12-17', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Fabien B', motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Bertrand
+            { agent: 'Bertrand', motif: 'recup',     startDate: '2026-10-20', startPeriod: 'M',  endDate: '2026-10-20', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Bertrand', motif: 'conges',    startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-12', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Bertrand', motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Bertrand', motif: 'conges',    startDate: '2026-11-23', startPeriod: 'M',  endDate: '2026-11-26', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Bertrand', motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Bertrand', motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Nicolas
+            { agent: 'Nicolas',  motif: 'conges',    startDate: '2026-11-03', startPeriod: 'M',  endDate: '2026-11-04', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Nicolas',  motif: 'recup',     startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-12', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Nicolas',  motif: 'recup',     startDate: '2026-11-17', startPeriod: 'M',  endDate: '2026-11-17', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Nicolas',  motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Nicolas',  motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Nicolas',  motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Romain
+            { agent: 'Romain',   motif: 'conges',    startDate: '2026-10-23', startPeriod: 'M',  endDate: '2026-10-23', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Romain',   motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Romain',   motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Romain',   motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Lionel
+            { agent: 'Lionel',   motif: 'conges',    startDate: '2026-10-12', startPeriod: 'M',  endDate: '2026-10-15', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Lionel',   motif: 'recup',     startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-12', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Lionel',   motif: 'recup',     startDate: '2026-11-17', startPeriod: 'M',  endDate: '2026-11-17', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Lionel',   motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Lionel',   motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Lionel',   motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // David B
+            { agent: 'David B',  motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'David B',  motif: 'formation', startDate: '2026-12-16', startPeriod: 'M',  endDate: '2026-12-17', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'David B',  motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'David B',  motif: 'conges',    startDate: '2027-01-28', startPeriod: 'M',  endDate: '2027-01-28', endPeriod: 'AM', comment: 'Repris Excel ANNEE 27' },
+
+            // Eric A
+            { agent: 'Eric A',   motif: 'recup',     startDate: '2026-10-08', startPeriod: 'M',  endDate: '2026-10-08', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Eric A',   motif: 'recup',     startDate: '2026-10-15', startPeriod: 'M',  endDate: '2026-10-15', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Eric A',   motif: 'conges',    startDate: '2026-11-04', startPeriod: 'M',  endDate: '2026-11-04', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Eric A',   motif: 'conges',    startDate: '2026-11-10', startPeriod: 'M',  endDate: '2026-11-10', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Eric A',   motif: 'conges',    startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-13', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Eric A',   motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Eric A',   motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Eric A',   motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Fabien G
+            { agent: 'Fabien G', motif: 'recup',     startDate: '2026-10-02', startPeriod: 'AM', endDate: '2026-10-02', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Fabien G', motif: 'absent',    startDate: '2026-11-02', startPeriod: 'AM', endDate: '2026-11-02', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Fabien G', motif: 'conges',    startDate: '2026-11-10', startPeriod: 'M',  endDate: '2026-11-10', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Fabien G', motif: 'conges',    startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-13', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Fabien G', motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Fabien G', motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Fabien G', motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Louis
+            { agent: 'Louis',    motif: 'conges',    startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-17', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Louis',    motif: 'recup',     startDate: '2026-11-18', startPeriod: 'M',  endDate: '2026-11-18', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Louis',    motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Louis',    motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Louis',    motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Thierry
+            { agent: 'Thierry',  motif: 'conges',    startDate: '2026-10-01', startPeriod: 'M',  endDate: '2026-10-01', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Thierry',  motif: 'conges',    startDate: '2026-11-10', startPeriod: 'M',  endDate: '2026-11-10', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Thierry',  motif: 'conges',    startDate: '2026-11-12', startPeriod: 'M',  endDate: '2026-11-13', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Thierry',  motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Thierry',  motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Thierry',  motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Jean-Paul
+            { agent: 'Jean-Paul', motif: 'formation', startDate: '2026-11-19', startPeriod: 'M',  endDate: '2026-11-19', endPeriod: 'AM', comment: 'Repris Excel NOV 26' },
+            { agent: 'Jean-Paul', motif: 'conges',    startDate: '2026-12-24', startPeriod: 'AM', endDate: '2026-12-24', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+            { agent: 'Jean-Paul', motif: 'conges',    startDate: '2026-12-31', startPeriod: 'AM', endDate: '2026-12-31', endPeriod: 'AM', comment: 'Repris Excel DEC 26' },
+
+            // Yannick V
+            { agent: 'Yannick V', motif: 'conges',   startDate: '2026-10-05', startPeriod: 'M',  endDate: '2026-10-05', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Yannick V', motif: 'conges',   startDate: '2026-10-16', startPeriod: 'M',  endDate: '2026-10-19', endPeriod: 'AM', comment: 'Repris Excel OCT 26' },
+            { agent: 'Yannick V', motif: 'conges',   startDate: '2026-10-29', startPeriod: 'M',  endDate: '2026-11-04', endPeriod: 'AM', comment: 'Repris Excel OCT/NOV 26' },
+
+            // Fabrice P
+            { agent: 'Fabrice P', motif: 'conges',   startDate: '2026-10-06', startPeriod: 'M',  endDate: '2026-10-06', endPeriod: 'AM', comment: 'Repris Excel OCT 26' }
+        ];
+
+        const STORAGE_KEY = 'st_seez_planning_oct26_dec27_v2';
+
+        /**
+         * 2. ÉTAT GLOBAL DE L'APPLICATION
+         */
+        let state = {
+            selectedMonthIdx: 0,       // 0 = OCT 26 ... 14 = DEC 27
+            viewMode: 'month',         // 'month' ou 'annual'
+            activeMainTab: 'planning', // 'planning', 'daily', 'search', 'counters', 'history'
+            dailyDashboardDate: '2026-11-24', // Date active du tableau de bord journalier
+            teamFilter: 'all',
+            searchQuery: '',
+            dateSearchMode: 'exact',   // 'exact' ou 'range'
+            searchDateStart: '',       // YYYY-MM-DD
+            searchDateEnd: '',         // YYYY-MM-DD
+            motifFilter: 'all',        // 'all' ou id du motif
+            showBackgroundGrid: true,
+            requests: [],              // Liste des demandes / annotations
+            manualOverrides: {},       // Modifications ponctuelles au clic rapide ("Agent|YYYY-MM-DD|M" -> motifId ou null)
+            cpEntitlements2027: {}     // Droit à congés 2027 paramétrable par agent (défaut 25)
+        };
+
+        // Cache pré-calculé de la trame de fond (Fériés, Repos alternés, Astreintes)
+        let BACKGROUND_GRID_CACHE = {};
+
+        /**
+         * 3. OUTILS DATES & CALCULS MÉTIER
+         */
+        function toISODate(year, monthZeroBased, day) {
+            const m = String(monthZeroBased + 1).padStart(2, '0');
+            const d = String(day).padStart(2, '0');
+            return `${year}-${m}-${d}`;
+        }
+
+        function parseISODate(iso) {
+            const [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function formatFRDate(iso) {
+            const [y, m, d] = iso.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function getDaysInMonth(year, monthZeroBased) {
+            return new Date(year, monthZeroBased + 1, 0).getDate();
+        }
+
+        function getISOWeekNumber(dateObj) {
+            const d = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        /**
+         * Retourne toutes les demi-journées ('M' et/ou 'AM') entre deux bornes
+         */
+        function expandHalfDaySlots(startDate, startPeriod, endDate, endPeriod) {
+            const slots = [];
+            const dStart = parseISODate(startDate);
+            const dEnd = parseISODate(endDate);
+
+            for (let d = new Date(dStart); d <= dEnd; d.setDate(d.getDate() + 1)) {
+                const iso = toISODate(d.getFullYear(), d.getMonth(), d.getDate());
+                const isFirst = d.getTime() === dStart.getTime();
+                const isLast = d.getTime() === dEnd.getTime();
+
+                const startIdx = (isFirst && startPeriod === 'AM') ? 1 : 0;
+                const endIdx = (isLast && endPeriod === 'M') ? 0 : 1;
+
+                if (startIdx <= endIdx) {
+                    if (startIdx === 0) slots.push({ date: iso, period: 'M' });
+                    if (endIdx === 1) slots.push({ date: iso, period: 'AM' });
+                }
+            }
+            return slots;
+        }
+
+        /**
+         * Calcule la durée en jours ouvrés (hors week-ends et jours fériés)
+         */
+        function computeWorkingDaysDuration(startDate, startPeriod, endDate, endPeriod) {
+            const slots = expandHalfDaySlots(startDate, startPeriod, endDate, endPeriod);
+            let halfDays = 0;
+            slots.forEach(s => {
+                const d = parseISODate(s.date);
+                const dow = d.getDay();
+                const isWeekend = (dow === 0 || dow === 6);
+                const isHoliday = PUBLIC_HOLIDAYS.has(s.date);
+                if (!isWeekend && !isHoliday) {
+                    halfDays += 1;
+                }
+            });
+            return halfDays * 0.5;
+        }
+
+        /**
+         * 4. GÉNÉRATION DE LA TRAME DE FOND OFFICIELLE (OCT 2026 -> DÉC 2027)
+         */
+        function buildBackgroundGridCache() {
+            const cache = {};
+            const refMonday = new Date(2026, 8, 28); // Lundi 28/09/2026 (semaine paire d'alternance : Vendredi 02/10 = Eq1)
+
+            // 1. Jours fériés & Repos hebdomadaires alternés
+            MONTHS_LIST.forEach(mObj => {
+                const daysCount = getDaysInMonth(mObj.year, mObj.month);
+                for (let day = 1; day <= daysCount; day++) {
+                    const d = new Date(mObj.year, mObj.month, day);
+                    const iso = toISODate(mObj.year, mObj.month, day);
+                    const dow = d.getDay(); // 0=Dim, 1=Lun, 2=Mar, 3=Mer, 4=Jeu, 5=Ven, 6=Sam
+
+                    if (dow === 0 || dow === 6) continue; // Week-end traité visuellement
+
+                    // Jours fériés pour tous les agents
+                    if (PUBLIC_HOLIDAYS.has(iso)) {
+                        ALL_AGENTS.forEach(ag => {
+                            cache[`${ag.name}|${iso}|M`] = 'ferie';
+                            cache[`${ag.name}|${iso}|AM`] = 'ferie';
+                        });
+                        continue;
+                    }
+
+                    // Calcul de la semaine relative au lundi 28/09/2026
+                    const mondayOfWeek = new Date(d);
+                    mondayOfWeek.setDate(d.getDate() - (dow - 1));
+                    const weekIndex = Math.round((mondayOfWeek - refMonday) / (7 * 86400000));
+                    const isEvenWeek = (weekIndex % 2 === 0);
+
+                    ALL_AGENTS.forEach(ag => {
+                        // RT : Fabien B -> tous les mercredis à partir de novembre 2026 (sauf exception 25-26/02/2027)
+                        if (ag.name === 'Fabien B') {
+                            const isNov2026OrLater = (mObj.year > 2026 || mObj.month >= 10);
+                            if (isNov2026OrLater && dow === 3 && iso !== '2027-02-24') {
+                                cache[`Fabien B|${iso}|M`] = 'repos';
+                                cache[`Fabien B|${iso}|AM`] = 'repos';
+                            }
+                            if (iso === '2027-02-25') {
+                                cache[`Fabien B|${iso}|AM`] = 'repos';
+                            }
+                            if (iso === '2027-02-26') {
+                                cache[`Fabien B|${iso}|M`] = 'repos';
+                                cache[`Fabien B|${iso}|AM`] = 'repos';
+                            }
+                        }
+
+                        // Équipe 1 : Semaine paire -> Vendredi (5), Semaine impaire -> Lundi (1)
+                        if (ag.teamId === 'eq1') {
+                            if ((isEvenWeek && dow === 5) || (!isEvenWeek && dow === 1)) {
+                                cache[`${ag.name}|${iso}|M`] = 'repos';
+                                cache[`${ag.name}|${iso}|AM`] = 'repos';
+                            }
+                        }
+
+                        // Équipe 2 : Semaine impaire -> Vendredi (5), Semaine paire -> Lundi (1)
+                        if (ag.teamId === 'eq2') {
+                            if ((!isEvenWeek && dow === 5) || (isEvenWeek && dow === 1)) {
+                                cache[`${ag.name}|${iso}|M`] = 'repos';
+                                cache[`${ag.name}|${iso}|AM`] = 'repos';
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 2. Astreintes hiver 2026-2027 (prioritaires sur repos de fond, mais sous les demandes utilisateur)
+            WINTER_ASTREINTES.forEach(ast => {
+                const slots = expandHalfDaySlots(ast.startDate, ast.startPeriod, ast.endDate, ast.endPeriod);
+                slots.forEach(s => {
+                    const d = parseISODate(s.date);
+                    const dow = d.getDay();
+                    if (dow !== 0 && dow !== 6) {
+                        cache[`${ast.agent}|${s.date}|${s.period}`] = 'absent';
+                    }
+                });
+            });
+
+            BACKGROUND_GRID_CACHE = cache;
+        }
+
+        /**
+         * 5. CONSTRUCTION DE LA CARTE EFFECTIVE DES CELLULES (PRIORITÉ DEMANDES > TRAME DE FOND)
+         */
+        function buildEffectiveCellMap() {
+            const map = {};
+
+            // 1. Trame de fond si activée
+            if (state.showBackgroundGrid) {
+                Object.entries(BACKGROUND_GRID_CACHE).forEach(([key, motifId]) => {
+                    map[key] = { motifId, source: 'background' };
+                });
+            }
+
+            // 2. Demandes & Annotations (Excel + Utilisateur) : priorité sur la trame de fond
+            state.requests.forEach(req => {
+                const slots = expandHalfDaySlots(req.startDate, req.startPeriod, req.endDate, req.endPeriod);
+                slots.forEach(s => {
+                    const d = parseISODate(s.date);
+                    const dow = d.getDay();
+                    // Ne pas écraser un week-end sauf si saisie explicite
+                    if (dow !== 0 && dow !== 6) {
+                        map[`${req.agent}|${s.date}|${s.period}`] = {
+                            motifId: req.motif,
+                            source: req.source,
+                            requestId: req.id,
+                            comment: req.comment
+                        };
+                    }
+                });
+            });
+
+            // 3. Modifications ponctuelles au clic direct sur le planning
+            Object.entries(state.manualOverrides).forEach(([key, val]) => {
+                if (val === null) {
+                    delete map[key];
+                } else {
+                    map[key] = { motifId: val, source: 'manual' };
+                }
+            });
+
+            return map;
+        }
+
+        /**
+         * 6. PERSISTANCE LOCALSTORAGE & INITIALISATION EXCEL
+         */
+        function createDefaultState() {
+            const defaultRequests = INITIAL_EXCEL_REQUESTS.map((r, idx) => ({
+                id: `excel_${idx + 1}`,
+                agent: r.agent,
+                motif: r.motif,
+                startDate: r.startDate,
+                startPeriod: r.startPeriod,
+                endDate: r.endDate,
+                endPeriod: r.endPeriod,
+                comment: r.comment || '',
+                source: 'excel'
+            }));
+
+            const defaultCP = {};
+            ALL_AGENTS.forEach(a => { defaultCP[a.name] = 25; });
+
+            return {
+                selectedMonthIdx: 0, // Démarre sur OCT 26
+                viewMode: 'month',
+                activeMainTab: 'planning',
+                dailyDashboardDate: '2026-11-24',
+                teamFilter: 'all',
+                searchQuery: '',
+                dateSearchMode: 'exact',
+                searchDateStart: '',
+                searchDateEnd: '',
+                motifFilter: 'all',
+                showBackgroundGrid: true,
+                requests: defaultRequests,
+                manualOverrides: {},
+                cpEntitlements2027: defaultCP
+            };
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (err) {
+                console.error('Erreur sauvegarde localStorage:', err);
+            }
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    state = { ...createDefaultState(), ...parsed };
+                } else {
+                    state = createDefaultState();
+                    saveState();
+                }
+            } catch (err) {
+                console.error('Erreur lecture localStorage:', err);
+                state = createDefaultState();
+            }
+        }
+
+        /**
+         * 7. OUTILS DE RECHERCHE PAR DATE / PLAGE / MOTIF & NOTIFICATIONS
+         */
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const bgClass = type === 'error'
+                ? 'bg-rose-600 text-white'
+                : type === 'info'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-emerald-600 text-white';
+            toast.className = `${bgClass} px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 transition-all duration-300`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        function getNormalizedSearchRange() {
+            const s = (state.searchDateStart || '').trim();
+            const e = (state.searchDateEnd || '').trim();
+            if (!s && !e) return null;
+            if (state.dateSearchMode === 'exact') {
+                const target = s || e;
+                return { start: target, end: target };
+            }
+            const start = s || e;
+            const end = e || s;
+            return start <= end ? { start, end } : { start: end, end: start };
+        }
+
+        function isSearchFilterActive() {
+            return Boolean(
+                getNormalizedSearchRange() ||
+                state.motifFilter !== 'all' ||
+                state.teamFilter !== 'all' ||
+                (state.searchQuery && state.searchQuery.trim() !== '')
+            );
+        }
+
+        function jumpToMonthOfISO(iso) {
+            if (!iso) return;
+            const [y, m] = iso.split('-').map(Number);
+            const idx = MONTHS_LIST.findIndex(item => item.year === y && item.month === m - 1);
+            if (idx !== -1) {
+                state.selectedMonthIdx = idx;
+            }
+        }
+
+        function resetSearchFilters() {
+            state.dateSearchMode = 'exact';
+            state.searchDateStart = '';
+            state.searchDateEnd = '';
+            state.motifFilter = 'all';
+            state.teamFilter = 'all';
+            state.searchQuery = '';
+            renderApp();
+            showToast('Filtres de recherche réinitialisés.', 'info');
+        }
+
+        function buildSearchEntries(cellMap) {
+            const range = getNormalizedSearchRange();
+            const q = (state.searchQuery || '').trim().toLowerCase();
+            const entries = [];
+
+            // 1. Entrées issues des demandes / annotations (Excel + Utilisateur)
+            state.requests.forEach(req => {
+                const agInfo = AGENT_MAP[req.agent] || { teamId: 'all', teamLabel: '—', badgeClass: 'bg-slate-100 text-slate-700' };
+                if (state.teamFilter !== 'all' && agInfo.teamId !== state.teamFilter) return;
+                if (state.motifFilter !== 'all' && req.motif !== state.motifFilter) return;
+                if (range && (req.endDate < range.start || req.startDate > range.end)) return;
+                if (q) {
+                    const hay = `${req.agent} ${req.comment || ''} ${MOTIF_MAP[req.motif]?.label || ''}`.toLowerCase();
+                    if (!hay.includes(q)) return;
+                }
+
+                entries.push({
+                    agent: req.agent,
+                    teamLabel: agInfo.teamLabel,
+                    badgeClass: agInfo.badgeClass,
+                    motif: req.motif,
+                    startDate: req.startDate,
+                    startPeriod: req.startPeriod,
+                    endDate: req.endDate,
+                    endPeriod: req.endPeriod,
+                    duration: computeWorkingDaysDuration(req.startDate, req.startPeriod, req.endDate, req.endPeriod),
+                    sourceType: req.source,
+                    sourceLabel: req.source === 'excel' ? 'Repris Excel 2026/27' : 'Nouvelle demande',
+                    comment: req.comment || ''
+                });
+            });
+
+            // 2. Astreintes hiver si compatibles avec le filtre motif
+            if (state.showBackgroundGrid && (state.motifFilter === 'all' || state.motifFilter === 'absent')) {
+                WINTER_ASTREINTES.forEach(ast => {
+                    const agInfo = AGENT_MAP[ast.agent] || { teamId: 'all', teamLabel: '—', badgeClass: 'bg-slate-100 text-slate-700' };
+                    if (state.teamFilter !== 'all' && agInfo.teamId !== state.teamFilter) return;
+                    if (range && (ast.endDate < range.start || ast.startDate > range.end)) return;
+                    if (q && !`${ast.agent} astreinte`.toLowerCase().includes(q)) return;
+
+                    entries.push({
+                        agent: ast.agent,
+                        teamLabel: agInfo.teamLabel,
+                        badgeClass: agInfo.badgeClass,
+                        motif: 'absent',
+                        startDate: ast.startDate,
+                        startPeriod: ast.startPeriod,
+                        endDate: ast.endDate,
+                        endPeriod: ast.endPeriod,
+                        duration: computeWorkingDaysDuration(ast.startDate, ast.startPeriod, ast.endDate, ast.endPeriod),
+                        sourceType: 'background',
+                        sourceLabel: 'Astreinte hiver 26/27',
+                        comment: 'Semaine d’astreinte hivernale'
+                    });
+                });
+            }
+
+            // 3. Repos alternés ou Fériés si sélectionnés explicitement dans le filtre motif
+            if (state.showBackgroundGrid && (state.motifFilter === 'repos' || state.motifFilter === 'ferie')) {
+                const scanStart = range ? range.start : '2026-10-01';
+                const scanEnd = range ? range.end : '2027-12-31';
+                const groupedBg = new Map();
+
+                Object.entries(cellMap).forEach(([key, info]) => {
+                    if (info.motifId !== state.motifFilter) return;
+                    const [agent, iso, period] = key.split('|');
+                    if (iso < scanStart || iso > scanEnd) return;
+                    const agInfo = AGENT_MAP[agent];
+                    if (!agInfo) return;
+                    if (state.teamFilter !== 'all' && agInfo.teamId !== state.teamFilter) return;
+                    if (q && !agent.toLowerCase().includes(q)) return;
+
+                    const gk = `${agent}|${iso}`;
+                    if (!groupedBg.has(gk)) {
+                        groupedBg.set(gk, { agent, agInfo, iso, periods: new Set() });
+                    }
+                    groupedBg.get(gk).periods.add(period);
+                });
+
+                groupedBg.forEach(g => {
+                    const hasM = g.periods.has('M');
+                    const hasAM = g.periods.has('AM');
+                    entries.push({
+                        agent: g.agent,
+                        teamLabel: g.agInfo.teamLabel,
+                        badgeClass: g.agInfo.badgeClass,
+                        motif: state.motifFilter,
+                        startDate: g.iso,
+                        startPeriod: hasM ? 'M' : 'AM',
+                        endDate: g.iso,
+                        endPeriod: hasAM ? 'AM' : 'M',
+                        duration: (hasM && hasAM) ? 1 : 0.5,
+                        sourceType: 'background',
+                        sourceLabel: state.motifFilter === 'ferie' ? 'Jour férié officiel' : 'Repos hebdo alterné',
+                        comment: ''
+                    });
+                });
+            }
+
+            return entries.sort((a, b) => a.startDate.localeCompare(b.startDate) || a.agent.localeCompare(b.agent));
+        }
+
+        /**
+         * 8. INITIALISATION DES LISTES STATIQUES & MENUS
+         */
+        function initStaticUI() {
+            // 1. Sélecteur des 15 mois & pilules mensuelles
+            const monthDropdown = document.getElementById('select-month-dropdown');
+            const pillsBar = document.getElementById('month-pills-bar');
+            monthDropdown.innerHTML = MONTHS_LIST.map(m =>
+                `<option value="${m.index}">${m.shortCode} — ${m.label}</option>`
+            ).join('');
+
+            pillsBar.innerHTML = MONTHS_LIST.map(m =>
+                `<button type="button" data-month-pill="${m.index}" class="month-pill-btn shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition cursor-pointer">${m.shortCode}</button>`
+            ).join('');
+
+            // 2. Légende interactive & sélecteur filtre motif
+            const legendContainer = document.getElementById('legend-container');
+            legendContainer.innerHTML = MOTIFS.map(m => `
+                <button type="button" data-legend-motif="${m.id}"
+                    class="legend-filter-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white transition cursor-pointer"
+                    title="Cliquer pour filtrer par ${m.label}">
+                    <span class="w-3 h-3 rounded-xs border border-black/20 shrink-0" style="background-color: ${m.color};"></span>
+                    <span class="text-[11px] font-bold text-slate-800">${m.label}</span>
+                </button>
+            `).join('');
+
+            const motifOptionsHTML = `<option value="all">Tous les motifs</option>` +
+                MOTIFS.map(m => `<option value="${m.id}">${m.label}</option>`).join('');
+            document.getElementById('global-motif-filter').innerHTML = motifOptionsHTML;
+            document.getElementById('history-filter-motif').innerHTML = motifOptionsHTML;
+
+            // 3. Pinceau rapide au clic sur cellule
+            const brushSelect = document.getElementById('quick-brush-select');
+            brushSelect.innerHTML = `
+                <option value="inspect">Ouvrir fiche / poser demande</option>
+                ${MOTIFS.map(m => `<option value="${m.id}">Peindre : ${m.label}</option>`).join('')}
+                <option value="erase">Effacer la case</option>
+            `;
+
+            // 4. Sélecteurs Agents (Modale + Historique)
+            const formAgentSelect = document.getElementById('form-agent');
+            formAgentSelect.innerHTML = `<option value="">-- Sélectionner un agent --</option>` +
+                TEAMS.map(t => `
+                    <optgroup label="${t.fullName}">
+                        ${t.agents.map(ag => `<option value="${ag}">${ag}</option>`).join('')}
+                    </optgroup>
+                `).join('');
+
+            const historyAgentSelect = document.getElementById('history-filter-agent');
+            historyAgentSelect.innerHTML = `<option value="all">Tous les agents</option>` +
+                ALL_AGENTS.map(a => `<option value="${a.name}">${a.name} (${a.teamLabel})</option>`).join('');
+
+            // 5. Sélecteur Motif dans la modale
+            const formMotifSelect = document.getElementById('form-motif');
+            formMotifSelect.innerHTML = MOTIFS.map(m => `<option value="${m.id}">${m.label}</option>`).join('');
+        }
+
+        /**
+         * 9. RENDU D'UNE GRILLE MENSUELLE (DEMI-JOURNÉES M / AM)
+         */
+        function renderSingleMonthCard(mObj, cellMap) {
+            const daysCount = getDaysInMonth(mObj.year, mObj.month);
+            const range = getNormalizedSearchRange();
+            const q = (state.searchQuery || '').trim().toLowerCase();
+            const hasSearch = isSearchFilterActive();
+
+            const visibleAgents = ALL_AGENTS.filter(ag => {
+                if (state.teamFilter !== 'all' && ag.teamId !== state.teamFilter) return false;
+                if (q && !ag.name.toLowerCase().includes(q)) return false;
+                return true;
+            });
+
+            // En-têtes des jours (1 .. daysCount) et sous-colonnes M / AM
+            let dayHeadersHTML = '';
+            let subHeadersHTML = '';
+
+            for (let day = 1; day <= daysCount; day++) {
+                const d = new Date(mObj.year, mObj.month, day);
+                const iso = toISODate(mObj.year, mObj.month, day);
+                const dow = d.getDay();
+                const isWeekend = (dow === 0 || dow === 6);
+                const isHoliday = PUBLIC_HOLIDAYS.has(iso);
+                const isDateMatched = range && iso >= range.start && iso <= range.end;
+
+                const thDayBg = isDateMatched
+                    ? 'col-date-highlight'
+                    : isWeekend
+                        ? 'bg-slate-200 text-slate-600'
+                        : isHoliday
+                            ? 'bg-emerald-100 text-emerald-900'
+                            : 'bg-slate-100 text-slate-800';
+
+                dayHeadersHTML += `
+                    <th colspan="2" class="border border-slate-300 px-0.5 py-1 text-center font-extrabold text-[10px] leading-tight ${thDayBg}" title="${formatFRDate(iso)}">
+                        <div>${DAYS_SHORT_FR[dow].charAt(0)}</div>
+                        <div>${day}</div>
+                    </th>
+                `;
+
+                const subBg = isDateMatched ? 'bg-blue-100 text-blue-900 font-bold' : isWeekend ? 'bg-slate-200/80 text-slate-500' : 'bg-white text-slate-400';
+                subHeadersHTML += `
+                    <th class="border border-slate-300 px-0.5 py-0.5 text-center text-[8px] font-semibold ${subBg} min-w-[15px]">M</th>
+                    <th class="border border-slate-300 px-0.5 py-0.5 text-center text-[8px] font-semibold ${subBg} min-w-[15px]">AM</th>
+                `;
+            }
+
+            const rowsHTML = visibleAgents.map(ag => {
+                let cellsHTML = '';
+                for (let day = 1; day <= daysCount; day++) {
+                    const d = new Date(mObj.year, mObj.month, day);
+                    const iso = toISODate(mObj.year, mObj.month, day);
+                    const dow = d.getDay();
+                    const isWeekend = (dow === 0 || dow === 6);
+                    const isDateMatched = range && iso >= range.start && iso <= range.end;
+
+                    ['M', 'AM'].forEach(period => {
+                        const cell = cellMap[`${ag.name}|${iso}|${period}`];
+                        let bgStyle = '';
+                        let extraClass = '';
+                        let titleParts = [`${ag.name} (${ag.teamLabel})`, `${formatFRDate(iso)} • ${period === 'M' ? 'Matin' : 'Après-midi'}`];
+
+                        if (cell) {
+                            const mInfo = MOTIF_MAP[cell.motifId];
+                            bgStyle = `background-color: ${mInfo.color};`;
+                            titleParts.push(mInfo.label);
+                            if (cell.comment) titleParts.push(cell.comment);
+                        } else if (isContractEndedOn(ag.name, iso)) {
+                            bgStyle = 'background: repeating-linear-gradient(135deg, #f1f5f9, #f1f5f9 3px, #cbd5e1 3px, #cbd5e1 6px);';
+                            titleParts.push(`Fin de contrat le ${formatFRDate(CONTRACT_END_DATES[ag.name])}`);
+                        } else if (ag.teamId === 'ald') {
+                            bgStyle = 'background-color: #FEF3C7;';
+                            titleParts.push('ALD');
+                        } else if (isWeekend) {
+                            bgStyle = 'background-color: #E2E8F0;';
+                            titleParts.push('Week-end');
+                        } else {
+                            bgStyle = 'background-color: #FFFFFF;';
+                            titleParts.push('Présent');
+                        }
+
+                        // Gestion surbrillance de recherche
+                        if (hasSearch) {
+                            const motifMatches = (state.motifFilter === 'all') || (cell && cell.motifId === state.motifFilter);
+                            const dateMatches = (!range) || isDateMatched;
+
+                            if (range && state.motifFilter !== 'all') {
+                                if (dateMatches && motifMatches) extraClass = 'cell-search-match';
+                                else extraClass = 'cell-search-dimmed';
+                            } else if (range) {
+                                if (dateMatches) extraClass = 'cell-search-match';
+                                else extraClass = 'cell-search-dimmed';
+                            } else if (state.motifFilter !== 'all') {
+                                if (motifMatches) extraClass = 'cell-search-match';
+                                else extraClass = 'cell-search-dimmed';
+                            }
+                        }
+
+                        cellsHTML += `
+                            <td data-agent="${ag.name}"
+                                data-date="${iso}"
+                                data-period="${period}"
+                                data-req-id="${cell?.requestId || ''}"
+                                style="${bgStyle}"
+                                title="${titleParts.join(' — ')}"
+                                class="half-day-cell border border-slate-300/90 h-6 p-0 ${extraClass}">
+                            </td>
+                        `;
+                    });
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/70">
+                        <td class="sticky-col bg-white border border-slate-300 px-2.5 py-1 whitespace-nowrap shadow-[2px_0_4px_rgba(15,23,42,0.04)]">
+                            <div class="flex items-center justify-between gap-2 min-w-[138px]">
+                                <div>
+                                    <span class="font-bold text-xs text-slate-900">${ag.name}</span>
+                                    ${CONTRACT_END_DATES[ag.name] ? `<div class="text-[9px] font-semibold text-slate-500 leading-none mt-0.5">Fin : ${formatFRDate(CONTRACT_END_DATES[ag.name])}</div>` : ''}
+                                </div>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold ${ag.badgeClass}">${ag.teamLabel}</span>
+                            </div>
+                        </td>
+                        ${cellsHTML}
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <section class="planning-card bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded-md bg-blue-600 text-[11px] font-extrabold tracking-wide">${mObj.shortCode}</span>
+                            <h3 class="text-xs sm:text-sm font-extrabold tracking-wide">${mObj.label}</h3>
+                        </div>
+                        <span class="text-[11px] text-slate-300">${visibleAgents.length} agent(s) affiché(s) • ${daysCount} jours</span>
+                    </div>
+                    <div class="planning-scroll overflow-x-auto">
+                        <table class="w-full border-collapse text-xs">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" class="sticky-col-header bg-slate-800 text-white border border-slate-600 px-2.5 py-1.5 text-left font-bold text-xs min-w-[155px]">
+                                        Agent / Équipe
+                                    </th>
+                                    ${dayHeadersHTML}
+                                </tr>
+                                <tr>
+                                    ${subHeadersHTML}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHTML || `<tr><td colspan="${daysCount * 2 + 1}" class="py-6 text-center text-slate-400 text-xs">Aucun agent ne correspond au filtre actif.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
+        }
+
+        /**
+         * 11A. RENDU DE L'ONGLET "TABLEAU DE BORD JOURNALIER"
+         */
+        function renderDailyDashboard(cellMap) {
+            const iso = state.dailyDashboardDate || '2026-11-24';
+            const dateObj = parseISODate(iso);
+            const dow = dateObj.getDay();
+            const isWeekend = (dow === 0 || dow === 6);
+            const isHoliday = PUBLIC_HOLIDAYS.has(iso);
+            const weekNum = getISOWeekNumber(dateObj);
+
+            const fullDayFormatter = new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            const titleEl = document.getElementById('daily-title-date');
+            const subEl = document.getElementById('daily-subtitle-info');
+            const pickerEl = document.getElementById('daily-date-picker');
+            if (!titleEl) return;
+
+            titleEl.textContent = fullDayFormatter.format(dateObj);
+            pickerEl.value = iso;
+
+            let dayTag = 'Jour ouvré';
+            if (isWeekend) dayTag = 'Week-end';
+            else if (isHoliday) dayTag = 'Jour férié';
+
+            // Effectif actif en contrat à la date sélectionnée (hors ALD et contrats terminés)
+            const activePool = ALL_AGENTS.filter(a => a.teamId !== 'ald' && !isContractEndedOn(a.name, iso));
+            const endedCount = ALL_AGENTS.filter(a => isContractEndedOn(a.name, iso)).length;
+            subEl.textContent = `Semaine ${weekNum} • ${dayTag} • Effectif en contrat : ${activePool.length} actifs + 1 ALD${endedCount > 0 ? ` (${endedCount} fin de contrat)` : ''}`;
+
+            // Calcul des effectifs Matin (M) & Après-midi (AM)
+            let presentM = 0;
+            let presentAM = 0;
+            let absentM = 0;
+            let absentAM = 0;
+            const astreinteAgents = new Set();
+            const motifStats = Object.fromEntries(MOTIFS.map(m => [m.id, { M: 0, AM: 0, agents: new Set() }]));
+
+            ALL_AGENTS.forEach(ag => {
+                const cellM = cellMap[`${ag.name}|${iso}|M`];
+                const cellAM = cellMap[`${ag.name}|${iso}|AM`];
+                const contractEnded = isContractEndedOn(ag.name, iso);
+
+                // Détection astreinte
+                if (cellM?.motifId === 'absent' || cellAM?.motifId === 'absent') {
+                    astreinteAgents.add(ag.name);
+                }
+
+                // Comptage par motif
+                if (cellM && motifStats[cellM.motifId]) {
+                    motifStats[cellM.motifId].M += 1;
+                    motifStats[cellM.motifId].agents.add(ag.name);
+                }
+                if (cellAM && motifStats[cellAM.motifId]) {
+                    motifStats[cellAM.motifId].AM += 1;
+                    motifStats[cellAM.motifId].agents.add(ag.name);
+                }
+
+                // Ignorer les contrats terminés dans les compteurs actifs/absents du jour
+                if (contractEnded) {
+                    return;
+                }
+
+                // Présence terrain (hors ALD, week-end et jour férié)
+                if (ag.teamId === 'ald') {
+                    absentM += 1;
+                    absentAM += 1;
+                    return;
+                }
+
+                if (isWeekend || isHoliday) {
+                    return;
+                }
+
+                if (!cellM) presentM += 1;
+                else absentM += 1;
+
+                if (!cellAM) presentAM += 1;
+                else absentAM += 1;
+            });
+
+            const totalActive = activePool.length;
+            const rateM = (isWeekend || isHoliday || totalActive === 0) ? 0 : Math.round((presentM / totalActive) * 100);
+            const rateAM = (isWeekend || isHoliday || totalActive === 0) ? 0 : Math.round((presentAM / totalActive) * 100);
+
+            // 1. Cartes KPIs
+            const kpiContainer = document.getElementById('daily-kpi-cards');
+            kpiContainer.innerHTML = `
+                <div class="bg-white rounded-2xl border border-emerald-200 p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase text-emerald-700">Présents Matin (M)</span>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800">${rateM}%</span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1.5">
+                        <span class="text-2xl font-extrabold text-slate-900">${presentM}</span>
+                        <span class="text-xs font-semibold text-slate-400">/ ${totalActive} actifs</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">${isWeekend ? 'Repos week-end' : isHoliday ? 'Jour férié' : 'Agents disponibles 08h–12h'}</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-teal-200 p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase text-teal-700">Présents Après-midi (AM)</span>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-100 text-teal-800">${rateAM}%</span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1.5">
+                        <span class="text-2xl font-extrabold text-slate-900">${presentAM}</span>
+                        <span class="text-xs font-semibold text-slate-400">/ ${totalActive} actifs</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">${isWeekend ? 'Repos week-end' : isHoliday ? 'Jour férié' : 'Agents disponibles 13h30–17h'}</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-sky-200 p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase text-sky-700">Absents / Repos (M)</span>
+                        <i data-lucide="user-x" class="w-4 h-4 text-sky-600"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1.5">
+                        <span class="text-2xl font-extrabold text-slate-900">${absentM}</span>
+                        <span class="text-xs font-semibold text-slate-400">agent(s)</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">Congés, récup., repos, formation, ALD</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-indigo-200 p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase text-indigo-700">Absents / Repos (AM)</span>
+                        <i data-lucide="user-minus" class="w-4 h-4 text-indigo-600"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1.5">
+                        <span class="text-2xl font-extrabold text-slate-900">${absentAM}</span>
+                        <span class="text-xs font-semibold text-slate-400">agent(s)</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">Incluant demi-journées après-midi</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-rose-200 p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase text-rose-700">Astreinte / Absence</span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-base sm:text-lg font-extrabold text-slate-900">${astreinteAgents.size > 0 ? Array.from(astreinteAgents).join(', ') : 'Aucune'}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">Agent(s) signalé(s) en rouge ce jour</p>
+                </div>
+            `;
+
+            // 2. Répartition par Équipe
+            const teamsContainer = document.getElementById('daily-teams-breakdown');
+            teamsContainer.innerHTML = TEAMS.map(team => {
+                const inContractAgents = team.agents.filter(ag => !isContractEndedOn(ag, iso));
+                const totalTeam = inContractAgents.length;
+                let tPresentM = 0;
+                let tPresentAM = 0;
+
+                if (!isWeekend && !isHoliday && team.id !== 'ald') {
+                    inContractAgents.forEach(ag => {
+                        if (!cellMap[`${ag}|${iso}|M`]) tPresentM += 1;
+                        if (!cellMap[`${ag}|${iso}|AM`]) tPresentAM += 1;
+                    });
+                }
+
+                const pctM = totalTeam > 0 ? Math.round((tPresentM / totalTeam) * 100) : 0;
+                const pctAM = totalTeam > 0 ? Math.round((tPresentAM / totalTeam) * 100) : 0;
+                const endedNames = team.agents.filter(ag => isContractEndedOn(ag, iso));
+
+                return `
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[11px] px-2 py-0.5 rounded font-extrabold ${team.badgeClass}">${team.label}</span>
+                                <span class="text-xs font-bold text-slate-800">${team.fullName}</span>
+                                ${endedNames.length > 0 ? `<span class="text-[10px] font-semibold text-slate-400">(${endedNames.join(', ')} : fin de contrat)</span>` : ''}
+                            </div>
+                            <span class="text-xs font-extrabold text-slate-700">
+                                M : <span class="text-emerald-700">${tPresentM}/${totalTeam}</span> • AM : <span class="text-teal-700">${tPresentAM}/${totalTeam}</span>
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <div class="flex justify-between text-[10px] font-semibold text-slate-500 mb-0.5">
+                                    <span>Matin</span><span>${pctM}%</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                                    <div class="h-full bg-emerald-500 rounded-full transition-all" style="width: ${pctM}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[10px] font-semibold text-slate-500 mb-0.5">
+                                    <span>Après-midi</span><span>${pctAM}%</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                                    <div class="h-full bg-teal-500 rounded-full transition-all" style="width: ${pctAM}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 3. Décompte par Motif du jour
+            const motifsContainer = document.getElementById('daily-motifs-breakdown');
+            motifsContainer.innerHTML = MOTIFS.map(m => {
+                const st = motifStats[m.id];
+                const hasAny = st.M > 0 || st.AM > 0;
+                return `
+                    <div class="p-2.5 rounded-xl border ${hasAny ? 'border-slate-300 bg-white shadow-2xs' : 'border-slate-100 bg-slate-50/60 opacity-60'} flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-3.5 h-3.5 rounded-xs border border-black/20 shrink-0" style="background-color: ${m.color};"></span>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-800 truncate">${m.label}</div>
+                                <div class="text-[10px] text-slate-500 truncate">${st.agents.size > 0 ? Array.from(st.agents).join(', ') : 'Aucun agent'}</div>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-extrabold text-[11px]">
+                                ${st.M}M / ${st.AM}AM
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 4. Feuille de présence nominative
+            const rosterBody = document.getElementById('daily-roster-tbody');
+            rosterBody.innerHTML = ALL_AGENTS.map(ag => {
+                const cellM = cellMap[`${ag.name}|${iso}|M`];
+                const cellAM = cellMap[`${ag.name}|${iso}|AM`];
+                const contractEnded = isContractEndedOn(ag.name, iso);
+
+                const renderSlotBadge = (cell, period) => {
+                    if (cell) {
+                        const m = MOTIF_MAP[cell.motifId];
+                        return `
+                            <button type="button"
+                                data-daily-edit-agent="${ag.name}"
+                                data-daily-edit-date="${iso}"
+                                data-daily-edit-period="${period}"
+                                data-daily-edit-req="${cell.requestId || ''}"
+                                style="background-color: ${m.color}; color: ${m.textColor};"
+                                class="inline-flex items-center justify-center min-w-[125px] px-2.5 py-1 rounded-lg text-[11px] font-bold border border-black/15 hover:opacity-90 transition cursor-pointer"
+                                title="Cliquer pour modifier ce créneau">
+                                ${m.label}
+                            </button>
+                        `;
+                    }
+                    if (contractEnded) {
+                        return `<span class="inline-flex items-center justify-center min-w-[125px] px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-300">Fin de contrat</span>`;
+                    }
+                    if (ag.teamId === 'ald') {
+                        return `<span class="inline-flex items-center justify-center min-w-[125px] px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">ALD</span>`;
+                    }
+                    if (isWeekend) {
+                        return `<span class="inline-flex items-center justify-center min-w-[125px] px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-200 text-slate-600">Week-end</span>`;
+                    }
+                    return `
+                        <button type="button"
+                            data-daily-edit-agent="${ag.name}"
+                            data-daily-edit-date="${iso}"
+                            data-daily-edit-period="${period}"
+                            data-daily-edit-req=""
+                            class="inline-flex items-center justify-center min-w-[125px] px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                            title="Agent présent — Cliquer pour poser une absence">
+                            Présent
+                        </button>
+                    `;
+                };
+
+                const comments = [cellM?.comment, cellAM?.comment].filter(Boolean);
+                if (contractEnded) {
+                    comments.push(`Fin de contrat le ${formatFRDate(CONTRACT_END_DATES[ag.name])}`);
+                }
+                const uniqueComments = Array.from(new Set(comments)).join(' • ');
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors ${contractEnded ? 'bg-slate-50/70 text-slate-400' : ''}">
+                        <td class="py-2 px-3 font-bold ${contractEnded ? 'text-slate-500' : 'text-slate-900'} whitespace-nowrap">${ag.name}</td>
+                        <td class="py-2 px-3 whitespace-nowrap">
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold ${ag.badgeClass}">${ag.teamLabel}</span>
+                        </td>
+                        <td class="py-2 px-3 text-center whitespace-nowrap">${renderSlotBadge(cellM, 'M')}</td>
+                        <td class="py-2 px-3 text-center whitespace-nowrap">${renderSlotBadge(cellAM, 'AM')}</td>
+                        <td class="py-2 px-3 text-slate-500 text-xs">${uniqueComments || '<span class="text-slate-300">—</span>'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        /**
+         * 11B. RENDU DE L'ONGLET "RECHERCHE & DISPONIBILITÉS"
+         */
+        function renderSearchView(cellMap) {
+            const range = getNormalizedSearchRange();
+            const entries = buildSearchEntries(cellMap);
+            const searchBadge = document.getElementById('search-count-badge');
+
+            if (isSearchFilterActive()) {
+                searchBadge.textContent = entries.length;
+                searchBadge.classList.remove('hidden');
+            } else {
+                searchBadge.classList.add('hidden');
+            }
+
+            // Détermination de la fenêtre de référence pour la synthèse Présents / Absents
+            const refRange = range || { start: '2026-11-24', end: '2026-11-24' };
+            const refLabel = refRange.start === refRange.end
+                ? `le ${formatFRDate(refRange.start)}`
+                : `du ${formatFRDate(refRange.start)} au ${formatFRDate(refRange.end)}`;
+
+            document.getElementById('search-present-subtitle').textContent = `Effectif disponible sur le terrain ${refLabel}`;
+            document.getElementById('search-absent-subtitle').textContent = `Agents avec événement / absence ${refLabel}`;
+
+            const candidateAgents = ALL_AGENTS.filter(ag =>
+                (state.teamFilter === 'all' || ag.teamId === state.teamFilter) &&
+                ag.name.toLowerCase().includes(state.searchQuery.trim().toLowerCase())
+            );
+
+            const absentMap = new Map();
+            Object.entries(cellMap).forEach(([key, info]) => {
+                const [agent, iso] = key.split('|');
+                if (iso >= refRange.start && iso <= refRange.end) {
+                    if (!absentMap.has(agent)) absentMap.set(agent, new Set());
+                    absentMap.get(agent).add(info.motifId);
+                }
+            });
+
+            const presentAgents = candidateAgents.filter(ag =>
+                !absentMap.has(ag.name) &&
+                ag.teamId !== 'ald' &&
+                !isContractEndedOn(ag.name, refRange.start)
+            );
+            const absentAgents = candidateAgents.filter(ag =>
+                !isContractEndedOn(ag.name, refRange.start) &&
+                (absentMap.has(ag.name) || ag.teamId === 'ald')
+            );
+
+            document.getElementById('search-present-count').textContent = `${presentAgents.length} agent(s)`;
+            document.getElementById('search-absent-count').textContent = `${absentAgents.length} agent(s)`;
+
+            document.getElementById('search-present-list').innerHTML = presentAgents.length > 0
+                ? presentAgents.map(ag => `
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="font-bold text-slate-900">${ag.name}</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${ag.badgeClass}">${ag.teamLabel}</span>
+                    </div>
+                `).join('')
+                : `<p class="text-xs text-slate-400">Aucun agent disponible selon les filtres actuels.</p>`;
+
+            document.getElementById('search-absent-summary').innerHTML = absentAgents.length > 0
+                ? absentAgents.map(ag => {
+                    const motifsIds = ag.teamId === 'ald' && !absentMap.has(ag.name)
+                        ? ['maladie']
+                        : Array.from(absentMap.get(ag.name) || []);
+                    const badges = motifsIds.map(mId => {
+                        const m = MOTIF_MAP[mId];
+                        return m ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold border border-black/10" style="background-color:${m.color};color:${m.textColor};">${m.label}</span>` : '';
+                    }).join(' ');
+                    return `
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                            <span class="font-bold text-slate-900">${ag.name}</span>
+                            ${badges}
+                        </div>
+                    `;
+                }).join('')
+                : `<p class="text-xs text-slate-400">Aucune absence enregistrée sur cette période.</p>`;
+
+            // Légende récapitulative des critères
+            const criteriaParts = [];
+            if (range) {
+                criteriaParts.push(range.start === range.end ? `Date : ${formatFRDate(range.start)}` : `Période : du ${formatFRDate(range.start)} au ${formatFRDate(range.end)}`);
+            }
+            if (state.motifFilter !== 'all') {
+                criteriaParts.push(`Motif : ${MOTIF_MAP[state.motifFilter]?.label}`);
+            }
+            if (state.teamFilter !== 'all') {
+                criteriaParts.push(`Équipe : ${TEAMS.find(t => t.id === state.teamFilter)?.label}`);
+            }
+            if (state.searchQuery.trim()) {
+                criteriaParts.push(`Texte : "${state.searchQuery.trim()}"`);
+            }
+
+            document.getElementById('search-results-caption').textContent = criteriaParts.length > 0
+                ? `${entries.length} résultat(s) trouvé(s) — Critères actifs : ${criteriaParts.join(' • ')}`
+                : `${entries.length} entrée(s) au total (Octobre 2026 – Décembre 2027). Saisissez une date, une plage ou un motif pour affiner.`;
+
+            const tbody = document.getElementById('search-results-tbody');
+            if (entries.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="py-10 text-center text-slate-400 text-xs">
+                            Aucune entrée ne correspond à votre recherche par date ou motif.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = entries.map(item => {
+                const motif = MOTIF_MAP[item.motif] || MOTIFS[0];
+                const startP = item.startPeriod === 'M' ? 'Matin' : 'Après-midi';
+                const endP = item.endPeriod === 'M' ? 'Matin' : 'Après-midi';
+                const sourceBadge = item.sourceType === 'excel'
+                    ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">${item.sourceLabel}</span>`
+                    : item.sourceType === 'user'
+                        ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">${item.sourceLabel}</span>`
+                        : `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">${item.sourceLabel}</span>`;
+
+                return `
+                    <tr class="hover:bg-blue-50/40 transition-colors">
+                        <td class="py-2.5 px-3 font-bold text-slate-900 whitespace-nowrap">${item.agent}</td>
+                        <td class="py-2.5 px-3 whitespace-nowrap">
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold ${item.badgeClass}">${item.teamLabel}</span>
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-black/10"
+                                  style="background-color: ${motif.color}; color: ${motif.textColor};">
+                                ${motif.label}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap font-medium text-slate-700">
+                            ${formatFRDate(item.startDate)} <span class="text-slate-400">(${startP})</span>
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap font-medium text-slate-700">
+                            ${formatFRDate(item.endDate)} <span class="text-slate-400">(${endP})</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center font-extrabold text-slate-900">
+                            ${String(item.duration).replace('.', ',')} j
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap">${sourceBadge}</td>
+                        <td class="py-2.5 px-3 text-slate-600 max-w-[200px] truncate" title="${item.comment}">
+                            ${item.comment || '<span class="text-slate-300">—</span>'}
+                        </td>
+                        <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                            <button type="button"
+                                data-jump-date="${item.startDate}"
+                                data-jump-motif="${item.motif}"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition cursor-pointer"
+                                title="Afficher et surligner sur le calendrier">
+                                <i data-lucide="calendar-search" class="w-3.5 h-3.5"></i>
+                                <span>Voir sur le planning</span>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        /**
+         * 11C. RENDU DE L'ONGLET "COMPTEURS & SOLDES PAR AGENT"
+         */
+        function renderCountersTable(cellMap) {
+            const tbody = document.getElementById('counters-tbody');
+            if (!tbody) return;
+
+            const fmt = (val) => (val === 0 ? '<span class="text-slate-300">0</span>' : String(val).replace('.', ','));
+
+            tbody.innerHTML = ALL_AGENTS.map(ag => {
+                const c26 = { conges: 0, recup: 0, formation: 0, absent: 0 };
+                const c27 = { conges: 0, recup: 0, formation: 0, maladie: 0, asa: 0, absent: 0 };
+
+                Object.entries(cellMap).forEach(([key, info]) => {
+                    const [agentName, iso] = key.split('|');
+                    if (agentName !== ag.name) return;
+
+                    const d = parseISODate(iso);
+                    const dow = d.getDay();
+                    if (dow === 0 || dow === 6) return;
+                    if (PUBLIC_HOLIDAYS.has(iso) && info.motifId !== 'absent') return;
+
+                    const year = d.getFullYear();
+                    const mId = info.motifId;
+
+                    if (year === 2026) {
+                        if (Object.prototype.hasOwnProperty.call(c26, mId)) {
+                            c26[mId] += 0.5;
+                        }
+                    } else if (year === 2027) {
+                        if (Object.prototype.hasOwnProperty.call(c27, mId)) {
+                            c27[mId] += 0.5;
+                        }
+                    }
+                });
+
+                const entitlement = state.cpEntitlements2027[ag.name] ?? 25;
+                const solde27 = entitlement - c27.conges;
+                const soldeBadgeClass = solde27 < 0
+                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                    : solde27 <= 5
+                        ? 'bg-amber-100 text-amber-900 border-amber-300'
+                        : 'bg-emerald-100 text-emerald-900 border-emerald-300';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-2 px-3 border border-slate-200 font-bold text-slate-900 whitespace-nowrap">
+                            <div>${ag.name}</div>
+                            ${CONTRACT_END_DATES[ag.name] ? `<div class="text-[10px] font-semibold text-slate-500">Fin de contrat : ${formatFRDate(CONTRACT_END_DATES[ag.name])}</div>` : ''}
+                        </td>
+                        <td class="py-2 px-2.5 border border-slate-200 whitespace-nowrap">
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold ${ag.badgeClass}">${ag.teamLabel}</span>
+                        </td>
+
+                        <!-- Fin 2026 -->
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-sky-800">${fmt(c26.conges)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-emerald-700">${fmt(c26.recup)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-amber-700">${fmt(c26.formation)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-rose-700">${fmt(c26.absent)}</td>
+
+                        <!-- Année 2027 -->
+                        <td class="py-1.5 px-2 border border-slate-200 text-center bg-blue-50/40">
+                            <input type="number" step="0.5" min="0" max="60"
+                                data-cp-agent="${ag.name}"
+                                value="${entitlement}"
+                                class="cp-entitlement-input w-14 text-center rounded-lg border border-blue-200 bg-white px-1.5 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-bold text-blue-800 bg-blue-50/40">${fmt(c27.conges)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center bg-blue-50/70">
+                            <span class="inline-block px-2 py-0.5 rounded-md border text-xs font-extrabold ${soldeBadgeClass}">
+                                ${String(solde27).replace('.', ',')} j
+                            </span>
+                        </td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-emerald-700">${fmt(c27.recup)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-amber-700">${fmt(c27.formation)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-yellow-700">${fmt(c27.maladie)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-cyan-700">${fmt(c27.asa)}</td>
+                        <td class="py-2 px-2 border border-slate-200 text-center font-semibold text-rose-700">${fmt(c27.absent)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        /**
+         * 11D. RENDU DE L'ONGLET "HISTORIQUE DES DEMANDES & ANNOTATIONS"
+         */
+        function renderHistoryTable() {
+            const tbody = document.getElementById('history-tbody');
+            const countBadge = document.getElementById('history-count-badge');
+            if (!tbody) return;
+
+            const filterAgent = document.getElementById('history-filter-agent')?.value || 'all';
+            const filterMotif = document.getElementById('history-filter-motif')?.value || 'all';
+            const filterSource = document.getElementById('history-filter-source')?.value || 'all';
+
+            const filtered = state.requests
+                .filter(r => {
+                    if (filterAgent !== 'all' && r.agent !== filterAgent) return false;
+                    if (filterMotif !== 'all' && r.motif !== filterMotif) return false;
+                    if (filterSource !== 'all' && r.source !== filterSource) return false;
+                    return true;
+                })
+                .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.agent.localeCompare(b.agent));
+
+            if (countBadge) {
+                countBadge.textContent = String(state.requests.length);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="py-10 text-center text-slate-400 text-xs">
+                            Aucune demande ou annotation ne correspond aux filtres sélectionnés.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(req => {
+                const agInfo = AGENT_MAP[req.agent] || { teamLabel: '—', badgeClass: 'bg-slate-100 text-slate-700' };
+                const motif = MOTIF_MAP[req.motif] || MOTIFS[0];
+                const duration = computeWorkingDaysDuration(req.startDate, req.startPeriod, req.endDate, req.endPeriod);
+                const startP = req.startPeriod === 'M' ? 'Matin' : 'Après-midi';
+                const endP = req.endPeriod === 'M' ? 'Matin' : 'Après-midi';
+
+                const sourceBadge = req.source === 'excel'
+                    ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Repris Excel 2026/27</span>`
+                    : `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">Nouvelle demande</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-2.5 px-3 font-bold text-slate-900 whitespace-nowrap">${req.agent}</td>
+                        <td class="py-2.5 px-3 whitespace-nowrap">
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold ${agInfo.badgeClass}">${agInfo.teamLabel}</span>
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-black/10"
+                                  style="background-color: ${motif.color}; color: ${motif.textColor};">
+                                ${motif.label}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap font-medium text-slate-700">
+                            ${formatFRDate(req.startDate)} <span class="text-slate-400">(${startP})</span>
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap font-medium text-slate-700">
+                            ${formatFRDate(req.endDate)} <span class="text-slate-400">(${endP})</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center font-extrabold text-slate-900">
+                            ${String(duration).replace('.', ',')} j
+                        </td>
+                        <td class="py-2.5 px-3 whitespace-nowrap">${sourceBadge}</td>
+                        <td class="py-2.5 px-3 text-slate-600 max-w-[220px] truncate" title="${req.comment || ''}">
+                            ${req.comment || '<span class="text-slate-300">—</span>'}
+                        </td>
+                        <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1.5">
+                                <button type="button" data-edit-req="${req.id}"
+                                    class="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition cursor-pointer"
+                                    title="Modifier cette demande">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" data-delete-req="${req.id}"
+                                    class="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-700 text-slate-600 transition cursor-pointer"
+                                    title="Supprimer cette demande">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        /**
+         * 12. ORCHESTRATION DU RENDU GLOBAL
+         */
+        function renderApp() {
+            const cellMap = buildEffectiveCellMap();
+
+            // Synchronisation des onglets principaux
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                const isActive = btn.dataset.mainTab === state.activeMainTab;
+                btn.className = isActive
+                    ? 'main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer'
+                    : 'main-tab-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-white hover:text-slate-900 transition cursor-pointer';
+            });
+
+            document.getElementById('tab-content-planning').classList.toggle('hidden', state.activeMainTab !== 'planning');
+            document.getElementById('tab-content-daily').classList.toggle('hidden', state.activeMainTab !== 'daily');
+            document.getElementById('tab-content-search').classList.toggle('hidden', state.activeMainTab !== 'search');
+            document.getElementById('tab-content-counters').classList.toggle('hidden', state.activeMainTab !== 'counters');
+            document.getElementById('tab-content-history').classList.toggle('hidden', state.activeMainTab !== 'history');
+
+            // Synchronisation de la barre globale de recherche
+            const isRangeMode = state.dateSearchMode === 'range';
+            document.getElementById('global-date-mode').value = state.dateSearchMode;
+            document.getElementById('lbl-global-date-start').textContent = isRangeMode ? 'Du' : 'Date précise';
+            document.getElementById('wrap-global-date-end').classList.toggle('hidden', !isRangeMode);
+            document.getElementById('wrap-global-text').className = isRangeMode ? 'lg:col-span-2' : 'lg:col-span-2';
+            document.getElementById('wrap-global-date-start').className = isRangeMode ? 'lg:col-span-2' : 'lg:col-span-2';
+
+            document.getElementById('global-date-start').value = state.searchDateStart;
+            document.getElementById('global-date-end').value = state.searchDateEnd;
+            document.getElementById('global-motif-filter').value = state.motifFilter;
+            document.getElementById('filter-team').value = state.teamFilter;
+            document.getElementById('filter-search').value = state.searchQuery;
+            document.getElementById('active-search-indicator').classList.toggle('hidden', !isSearchFilterActive());
+
+            // Mise en évidence du bouton de légende actif
+            document.querySelectorAll('.legend-filter-btn').forEach(btn => {
+                const isSelected = btn.dataset.legendMotif === state.motifFilter;
+                btn.className = isSelected
+                    ? 'legend-filter-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border-2 border-blue-600 bg-blue-50 shadow-xs transition cursor-pointer'
+                    : 'legend-filter-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white transition cursor-pointer';
+            });
+!
+            // Synchronisation du mode d'affichage Planning
+            const isMonthMode = state.viewMode === 'month';
+            document.getElementById('btn-mode-month').className = isMonthMode
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-700 shadow-xs transition cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer';
+            document.getElementById('btn-mode-annual').className = !isMonthMode
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-700 shadow-xs transition cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer';
+
+            document.getElementById('month-nav-controls').classList.toggle('hidden', !isMonthMode);
+            document.getElementById('select-month-dropdown').value = String(state.selectedMonthIdx);
+            document.getElementById('toggle-background-grid').checked = state.showBackgroundGrid;
+
+            // Ruban des 15 pilules mensuelles
+            document.querySelectorAll('.month-pill-btn').forEach(btn => {
+                const idx = Number(btn.dataset.monthPill);
+                const isSelected = isMonthMode && idx === state.selectedMonthIdx;
+                const is2026 = idx <= 2;
+                if (isSelected) {
+                    btn.className = 'month-pill-btn shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold border border-blue-600 bg-blue-600 text-white shadow-xs transition cursor-pointer';
+                } else if (is2026) {
+                    btn.className = 'month-pill-btn shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-sky-200 bg-sky-50/80 text-sky-900 hover:bg-sky-100 transition cursor-pointer';
+                } else {
+                    btn.className = 'month-pill-btn shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition cursor-pointer';
+                }
+            });
+
+            // Rendu des grilles mensuelles
+            const wrapper = document.getElementById('planning-grids-wrapper');
+            if (isMonthMode) {
+                wrapper.innerHTML = renderSingleMonthCard(MONTHS_LIST[state.selectedMonthIdx], cellMap);
+            } else {
+                wrapper.innerHTML = MONTHS_LIST.map(m => renderSingleMonthCard(m, cellMap)).join('');
+            }
+            renderDailyDashboard(cellMap);
+            renderSearchView(cellMap);
+            renderCountersTable(cellMap);
+            renderHistoryTable();
+            lucide.createIcons();
+        }
+
+        /**
+         * 13. FORMULAIRE DE DEMANDE : CALCUL TEMPS RÉEL & DÉTECTION D'ALERTES
+         */
+        function evaluateFormPreviewAndAlerts() {
+            const agent = document.getElementById('form-agent').value;
+            const motif = document.getElementById('form-motif').value;
+            const startDate = document.getElementById('form-start-date').value;
+            const startPeriod = document.getElementById('form-start-period').value;
+            const endDate = document.getElementById('form-end-date').value;
+            const endPeriod = document.getElementById('form-end-period').value;
+            const editId = document.getElementById('edit-request-id').value;
+
+            const calcText = document.getElementById('form-calc-text');
+            const warningBox = document.getElementById('form-warning-box');
+            const warningText = document.getElementById('form-warning-text');
+
+            warningBox.classList.add('hidden');
+
+            if (!startDate || !endDate) return;
+
+            if (endDate < startDate || (startDate === endDate && startPeriod === 'AM' && endPeriod === 'M')) {
+                calcText.textContent = "Plage invalide : la fin doit être postérieure ou égale au début.";
+                return;
+            }
+
+            const duration = computeWorkingDaysDuration(startDate, startPeriod, endDate, endPeriod);
+            calcText.textContent = `Durée calculée : ${String(duration).replace('.', ',')} jour(s) ouvré(s) (hors week-ends et jours fériés).`;
+
+            if (!agent) return;
+
+            const targetSlots = expandHalfDaySlots(startDate, startPeriod, endDate, endPeriod);
+            const targetKeys = new Set(targetSlots.map(s => `${s.date}|${s.period}`));
+            const warnings = [];
+
+            const contractEnd = CONTRACT_END_DATES[agent];
+            if (contractEnd && endDate > contractEnd) {
+                warnings.push(`Attention : le contrat de ${agent} prend fin le ${formatFRDate(contractEnd)}.`);
+            }
+
+            // 1. Vérifier si l'agent a déjà une demande posée sur cette période
+            const selfOverlap = state.requests.find(r => {
+                if (r.id === editId || r.agent !== agent) return false;
+                const rSlots = expandHalfDaySlots(r.startDate, r.startPeriod, r.endDate, r.endPeriod);
+                return rSlots.some(s => targetKeys.has(`${s.date}|${s.period}`));
+            });
+
+            if (selfOverlap) {
+                const mLabel = MOTIF_MAP[selfOverlap.motif]?.label || selfOverlap.motif;
+                warnings.push(`${agent} a déjà une annotation « ${mLabel} » du ${formatFRDate(selfOverlap.startDate)} au ${formatFRDate(selfOverlap.endDate)}.`);
+            }
+
+            // 2. Vérifier les absences simultanées dans la même équipe
+            const agentInfo = AGENT_MAP[agent];
+            if (agentInfo && (agentInfo.teamId === 'eq1' || agentInfo.teamId === 'eq2')) {
+                const colleaguesAbsent = new Set();
+                state.requests.forEach(r => {
+                    if (r.agent === agent) return;
+                    const colInfo = AGENT_MAP[r.agent];
+                    if (colInfo && colInfo.teamId === agentInfo.teamId) {
+                        const rSlots = expandHalfDaySlots(r.startDate, r.startPeriod, r.endDate, r.endPeriod);
+                        if (rSlots.some(s => targetKeys.has(`${s.date}|${s.period}`))) {
+                            colleaguesAbsent.add(r.agent);
+                        }
+                    }
+                });
+
+                if (colleaguesAbsent.size > 0) {
+                    warnings.push(`Alerte ${agentInfo.teamLabel} : ${Array.from(colleaguesAbsent).join(', ')} également absent(s) sur cette période.`);
+                }
+            }
+
+            if (warnings.length > 0) {
+                warningText.textContent = warnings.join(' ');
+                warningBox.classList.remove('hidden');
+            }
+        }
+
+        function openRequestModal(options = {}) {
+            const modal = document.getElementById('request-modal');
+            const errorBox = document.getElementById('form-error-box');
+            errorBox.classList.add('hidden');
+
+            const mObj = MONTHS_LIST[state.selectedMonthIdx];
+            const defaultDate = toISODate(mObj.year, mObj.month, 1);
+
+            document.getElementById('edit-request-id').value = options.id || '';
+            document.getElementById('modal-title').textContent = options.id
+                ? 'Modifier la demande / annotation'
+                : 'Nouvelle demande de congés / absence';
+
+            document.getElementById('form-agent').value = options.agent || '';
+            document.getElementById('form-motif').value = options.motif || 'conges';
+            document.getElementById('form-start-date').value = options.startDate || defaultDate;
+            document.getElementById('form-start-period').value = options.startPeriod || 'M';
+            document.getElementById('form-end-date').value = options.endDate || options.startDate || defaultDate;
+            document.getElementById('form-end-period').value = options.endPeriod || 'AM';
+            document.getElementById('form-comment').value = options.comment || '';
+
+            const swatch = document.getElementById('form-motif-swatch');
+            swatch.style.backgroundColor = MOTIF_MAP[document.getElementById('form-motif').value]?.color || '#00B0F0';
+
+            evaluateFormPreviewAndAlerts();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRequestModal() {
+            const modal = document.getElementById('request-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        /**
+         * 14. EXPORTS CSV & JSON
+         */
+        function exportToCSV() {
+            const cellMap = buildEffectiveCellMap();
+            const monthsToExport = state.viewMode === 'month'
+                ? [MONTHS_LIST[state.selectedMonthIdx]]
+                : MONTHS_LIST;
+
+            const lines = [];
+            monthsToExport.forEach(mObj => {
+                const daysCount = getDaysInMonth(mObj.year, mObj.month);
+                lines.push(`PLANNING ${mObj.label} - SERVICES TECHNIQUES MAIRIE DE SEEZ`);
+
+                const header = ['Équipe', 'Agent'];
+                for (let d = 1; d <= daysCount; d++) {
+                    header.push(`${d}/${mObj.month + 1} M`, `${d}/${mObj.month + 1} AM`);
+                }
+                lines.push(header.join(';'));
+
+                ALL_AGENTS.forEach(ag => {
+                    const row = [ag.teamLabel, ag.name];
+                    for (let d = 1; d <= daysCount; d++) {
+                        const iso = toISODate(mObj.year, mObj.month, d);
+                        ['M', 'AM'].forEach(p => {
+                            const cell = cellMap[`${ag.name}|${iso}|${p}`];
+                            row.push(cell ? MOTIF_MAP[cell.motifId].label : '');
+                        });
+                    }
+                    lines.push(row.join(';'));
+                });
+                lines.push('');
+            });
+
+            const csv = '\uFEFF' + lines.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = state.viewMode === 'month'
+                ? `Planning_${MONTHS_LIST[state.selectedMonthIdx].shortCode.replace(' ', '_')}_Seez.csv`
+                : `Planning_Oct2026_Dec2027_Seez.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('Export CSV téléchargé.');
+        }
+
+        function exportToJSON() {
+            const payload = JSON.stringify(state, null, 2);
+            const blob = new Blob([payload], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Sauvegarde_Conges_Seez_Oct2026_Dec2027.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Sauvegarde JSON exportée.');
+        }
+
+        /**
+         * 15. INITIALISATION DES ÉCOUTEURS D'ÉVÉNEMENTS
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            buildBackgroundGridCache();
+            loadState();
+            initStaticUI();
+            renderApp();
+
+            // Navigation onglets principaux
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.activeMainTab = btn.dataset.mainTab;
+                    saveState();
+                    renderApp();
+                });
+            });
+
+            // Mode Focus Mois vs Vue Empilée 15 mois
+            document.getElementById('btn-mode-month').addEventListener('click', () => {
+                state.viewMode = 'month';
+                saveState();
+                renderApp();
+            });
+            document.getElementById('btn-mode-annual').addEventListener('click', () => {
+                state.viewMode = 'annual';
+                saveState();
+                renderApp();
+            });
+
+            // Navigation Mois précédent / suivant / sélecteur / pilules
+            document.getElementById('select-month-dropdown').addEventListener('change', (e) => {
+                state.selectedMonthIdx = Number(e.target.value);
+                saveState();
+                renderApp();
+            });
+            document.getElementById('btn-prev-month').addEventListener('click', () => {
+                state.selectedMonthIdx = (state.selectedMonthIdx + MONTHS_LIST.length - 1) % MONTHS_LIST.length;
+                saveState();
+                renderApp();
+            });
+            document.getElementById('btn-next-month').addEventListener('click', () => {
+                state.selectedMonthIdx = (state.selectedMonthIdx + 1) % MONTHS_LIST.length;
+                saveState();
+                renderApp();
+            });
+            document.getElementById('month-pills-bar').addEventListener('click', (e) => {
+                const pill = e.target.closest('.month-pill-btn');
+                if (pill) {
+                    state.viewMode = 'month';
+                    state.selectedMonthIdx = Number(pill.dataset.monthPill);
+                    saveState();
+                    renderApp();
+                }
+            });
+
+            // Filtres Équipe, Recherche Agent & Case à cocher Trame de fond
+            document.getElementById('filter-team').addEventListener('change', (e) => {
+                state.teamFilter = e.target.value;
+                renderApp();
+            });
+            document.getElementById('filter-search').addEventListener('input', (e) => {
+                state.searchQuery = e.target.value;
+                renderApp();
+            });
+            document.getElementById('toggle-background-grid').addEventListener('change', (e) => {
+                state.showBackgroundGrid = e.target.checked;
+                saveState();
+                renderApp();
+            });
+
+            // Contrôles de recherche par date, plage et motif
+            document.getElementById('global-date-mode').addEventListener('change', (e) => {
+                state.dateSearchMode = e.target.value;
+                if (state.dateSearchMode === 'range' && state.searchDateStart && !state.searchDateEnd) {
+                    state.searchDateEnd = state.searchDateStart;
+                }
+                renderApp();
+            });
+            document.getElementById('global-date-start').addEventListener('change', (e) => {
+                state.searchDateStart = e.target.value;
+                if (state.searchDateStart) {
+                    if (state.dateSearchMode === 'range' && (!state.searchDateEnd || state.searchDateEnd < state.searchDateStart)) {
+                        state.searchDateEnd = state.searchDateStart;
+                    }
+                    jumpToMonthOfISO(state.searchDateStart);
+                }
+                renderApp();
+            });
+            document.getElementById('global-date-end').addEventListener('change', (e) => {
+                state.searchDateEnd = e.target.value;
+                if (state.searchDateStart) {
+                    jumpToMonthOfISO(state.searchDateStart);
+                }
+                renderApp();
+            });
+            document.getElementById('global-motif-filter').addEventListener('change', (e) => {
+                state.motifFilter = e.target.value;
+                renderApp();
+            });
+
+            // Clic sur la légende pour basculer le filtre motif
+            document.getElementById('legend-container').addEventListener('click', (e) => {
+                const btn = e.target.closest('.legend-filter-btn');
+                if (!btn) return;
+                const mId = btn.dataset.legendMotif;
+                state.motifFilter = (state.motifFilter === mId) ? 'all' : mId;
+                renderApp();
+            });
+
+            // Raccourcis temporels rapides
+            document.querySelectorAll('.quick-range-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const kind = btn.dataset.quickRange;
+                    const now = new Date();
+                    const clampedYear = Math.min(2027, Math.max(2026, now.getFullYear()));
+                    const clampedMonth = (clampedYear === 2026 && now.getMonth() < 9) ? 9 : now.getMonth();
+                    const clampedDay = Math.min(getDaysInMonth(clampedYear, clampedMonth), now.getDate());
+                    const refToday = toISODate(clampedYear, clampedMonth, clampedDay);
+
+                    if (kind === 'today') {
+                        state.dateSearchMode = 'exact';
+                        state.searchDateStart = refToday;
+                        state.searchDateEnd = refToday;
+                    } else if (kind === 'week') {
+                        const d = parseISODate(refToday);
+                        const dow = d.getDay() || 7;
+                        const mon = new Date(d);
+                        mon.setDate(d.getDate() - (dow - 1));
+                        const sun = new Date(mon);
+                        sun.setDate(mon.getDate() + 6);
+                        state.dateSearchMode = 'range';
+                        state.searchDateStart = toISODate(mon.getFullYear(), mon.getMonth(), mon.getDate());
+                        state.searchDateEnd = toISODate(sun.getFullYear(), sun.getMonth(), sun.getDate());
+                    } else if (kind === 'month') {
+                        const mObj = MONTHS_LIST[state.selectedMonthIdx];
+                        state.dateSearchMode = 'range';
+                        state.searchDateStart = toISODate(mObj.year, mObj.month, 1);
+                        state.searchDateEnd = toISODate(mObj.year, mObj.month, getDaysInMonth(mObj.year, mObj.month));
+                    } else if (kind === 'end2026') {
+                        state.dateSearchMode = 'range';
+                        state.searchDateStart = '2026-10-01';
+                        state.searchDateEnd = '2026-12-31';
+                    } else if (kind === 'year2027') {
+                        state.dateSearchMode = 'range';
+                        state.searchDateStart = '2027-01-01';
+                        state.searchDateEnd = '2027-12-31';
+                    }
+
+                    jumpToMonthOfISO(state.searchDateStart);
+                    renderApp();
+                });
+            });
+
+            // Boutons d'accès aux résultats & réinitialisation des filtres
+            document.getElementById('btn-view-search-results').addEventListener('click', () => {
+                state.activeMainTab = 'search';
+                renderApp();
+            });
+            document.getElementById('btn-reset-search-filters').addEventListener('click', resetSearchFilters);
+            document.getElementById('btn-reset-search-filters-secondary').addEventListener('click', resetSearchFilters);
+
+            // Contrôles de navigation du Tableau de Bord Journalier
+            const shiftDailyDate = (deltaDays) => {
+                const cur = parseISODate(state.dailyDashboardDate || '2026-11-24');
+                cur.setDate(cur.getDate() + deltaDays);
+                const nextIso = toISODate(cur.getFullYear(), cur.getMonth(), cur.getDate());
+                if (nextIso >= '2026-10-01' && nextIso <= '2027-12-31') {
+                    state.dailyDashboardDate = nextIso;
+                    saveState();
+                    renderApp();
+                }
+            };
+            document.getElementById('btn-daily-prev').addEventListener('click', () => shiftDailyDate(-1));
+            document.getElementById('btn-daily-next').addEventListener('click', () => shiftDailyDate(1));
+            document.getElementById('daily-date-picker').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    state.dailyDashboardDate = e.target.value;
+                    saveState();
+                    renderApp();
+                }
+            });
+            document.getElementById('btn-daily-today').addEventListener('click', () => {
+                const now = new Date();
+                const clampedYear = Math.min(2027, Math.max(2026, now.getFullYear()));
+                const clampedMonth = (clampedYear === 2026 && now.getMonth() < 9) ? 9 : now.getMonth();
+                const clampedDay = Math.min(getDaysInMonth(clampedYear, clampedMonth), now.getDate());
+                state.dailyDashboardDate = toISODate(clampedYear, clampedMonth, clampedDay);
+                saveState();
+                renderApp();
+            });
+            document.getElementById('btn-daily-open-planning').addEventListener('click', () => {
+                const targetDate = state.dailyDashboardDate || '2026-11-24';
+                state.activeMainTab = 'planning';
+                state.viewMode = 'month';
+                state.dateSearchMode = 'exact';
+                state.searchDateStart = targetDate;
+                state.searchDateEnd = targetDate;
+                jumpToMonthOfISO(targetDate);
+                renderApp();
+            });
+
+            // Ouverture / Fermeture modale "+ Demande de congés..."
+            document.getElementById('btn-open-modal').addEventListener('click', () => openRequestModal());
+            document.querySelectorAll('.close-modal-btn').forEach(btn => {
+                btn.addEventListener('click', closeRequestModal);
+            });
+
+            // Mise à jour pastille & calcul formulaire
+            document.getElementById('form-motif').addEventListener('change', (e) => {
+                document.getElementById('form-motif-swatch').style.backgroundColor = MOTIF_MAP[e.target.value]?.color || '#00B0F0';
+                evaluateFormPreviewAndAlerts();
+            });
+            document.getElementById('form-start-date').addEventListener('change', (e) => {
+                const endInput = document.getElementById('form-end-date');
+                if (endInput.value < e.target.value) {
+                    endInput.value = e.target.value;
+                }
+                evaluateFormPreviewAndAlerts();
+            });
+            ['form-agent', 'form-start-period', 'form-end-date', 'form-end-period'].forEach(id => {
+                document.getElementById(id).addEventListener('change', evaluateFormPreviewAndAlerts);
+            });
+
+            // Soumission du formulaire de demande
+            document.getElementById('leave-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const errorBox = document.getElementById('form-error-box');
+                errorBox.classList.add('hidden');
+
+                const editId = document.getElementById('edit-request-id').value;
+                const agent = document.getElementById('form-agent').value;
+                const motif = document.getElementById('form-motif').value;
+                const startDate = document.getElementById('form-start-date').value;
+                const startPeriod = document.getElementById('form-start-period').value;
+                const endDate = document.getElementById('form-end-date').value;
+                const endPeriod = document.getElementById('form-end-period').value;
+                const comment = document.getElementById('form-comment').value.trim();
+
+                if (!agent) {
+                    errorBox.textContent = "Veuillez sélectionner un agent.";
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+
+                if (endDate < startDate || (startDate === endDate && startPeriod === 'AM' && endPeriod === 'M')) {
+                    errorBox.textContent = "La date et demi-journée de fin doivent être postérieures ou égales au début.";
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+
+                // Nettoyer d'éventuels overrides manuels sur les cases concernées
+                const slots = expandHalfDaySlots(startDate, startPeriod, endDate, endPeriod);
+                slots.forEach(s => {
+                    delete state.manualOverrides[`${agent}|${s.date}|${s.period}`];
+                });
+
+                if (editId) {
+                    const idx = state.requests.findIndex(r => r.id === editId);
+                    if (idx !== -1) {
+                        state.requests[idx] = {
+                            ...state.requests[idx],
+                            agent, motif, startDate, startPeriod, endDate, endPeriod, comment
+                        };
+                    }
+                    showToast(`Annotation mise à jour pour ${agent}.`);
+                } else {
+                    state.requests.push({
+                        id: `req_${Date.now()}`,
+                        agent,
+                        motif,
+                        startDate,
+                        startPeriod,
+                        endDate,
+                        endPeriod,
+                        comment,
+                        source: 'user'
+                    });
+                    showToast(`${MOTIF_MAP[motif].label} enregistré pour ${agent}.`);
+                }
+
+                // Positionner le planning sur le mois de début de la demande
+                const [y, m] = startDate.split('-').map(Number);
+                const mIdx = MONTHS_LIST.findIndex(item => item.year === y && item.month === m - 1);
+                if (mIdx !== -1) {
+                    state.selectedMonthIdx = mIdx;
+                }
+
+                saveState();
+                renderApp();
+                closeRequestModal();
+            });
+
+            // Clics délégués sur la grille (cellules) et sur l'historique (modifier / supprimer)
+            document.addEventListener('click', (e) => {
+                // 1. Clic sur une demi-journée du planning
+                const cell = e.target.closest('.half-day-cell');
+                if (cell) {
+                    const agent = cell.dataset.agent;
+                    const date = cell.dataset.date;
+                    const period = cell.dataset.period;
+                    const reqId = cell.dataset.reqId;
+                    const brush = document.getElementById('quick-brush-select').value;
+                    const key = `${agent}|${date}|${period}`;
+
+                    if (brush === 'inspect') {
+                        if (reqId) {
+                            const existingReq = state.requests.find(r => r.id === reqId);
+                            if (existingReq) {
+                                openRequestModal(existingReq);
+                                return;
+                            }
+                        }
+                        openRequestModal({
+                            agent,
+                            startDate: date,
+                            startPeriod: period,
+                            endDate: date,
+                            endPeriod: period
+                        });
+                        return;
+                    } else if (brush === 'erase') {
+                        state.manualOverrides[key] = null;
+                        saveState();
+                        renderApp();
+                        showToast(`Case effacée (${agent} • ${formatFRDate(date)} ${period}).`, 'info');
+                    } else {
+                        // Appliquer directement le motif choisi dans le pinceau rapide
+                        if (state.manualOverrides[key] === brush) {
+                            delete state.manualOverrides[key];
+                        } else {
+                            state.manualOverrides[key] = brush;
+                        }
+                        saveState();
+                        renderApp();
+                    }
+                }
+
+                // 2. Modifier une demande depuis l'historique
+                const editBtn = e.target.closest('[data-edit-req]');
+                if (editBtn) {
+                    const req = state.requests.find(r => r.id === editBtn.dataset.editReq);
+                    if (req) openRequestModal(req);
+                }
+
+                // 3. Supprimer une demande depuis l'historique
+                const delBtn = e.target.closest('[data-delete-req]');
+                if (delBtn) {
+                    const id = delBtn.dataset.deleteReq;
+                    const idx = state.requests.findIndex(r => r.id === id);
+                    if (idx !== -1) {
+                        const removed = state.requests[idx];
+                        state.requests.splice(idx, 1);
+                        saveState();
+                        renderApp();
+                        showToast(`Demande supprimée (${removed.agent}).`, 'info');
+                    }
+                }
+
+                // 4. Bouton "Voir sur le planning" depuis l'onglet Recherche & Disponibilités
+                const jumpBtn = e.target.closest('[data-jump-date]');
+                if (jumpBtn) {
+                    const targetDate = jumpBtn.dataset.jumpDate;
+                    state.activeMainTab = 'planning';
+                    state.viewMode = 'month';
+                    jumpToMonthOfISO(targetDate);
+                    if (!state.searchDateStart) {
+                        state.dateSearchMode = 'exact';
+                        state.searchDateStart = targetDate;
+                        state.searchDateEnd = targetDate;
+                    }
+                    renderApp();
+                    showToast(`Affichage du planning au ${formatFRDate(targetDate)}.`, 'info');
+                }
+
+                // 5. Clic sur un créneau M / AM depuis la feuille de présence du Tableau de Bord Journalier
+                const dailyEditBtn = e.target.closest('[data-daily-edit-agent]');
+                if (dailyEditBtn) {
+                    const reqId = dailyEditBtn.dataset.dailyEditReq;
+                    if (reqId) {
+                        const existingReq = state.requests.find(r => r.id === reqId);
+                        if (existingReq) {
+                            openRequestModal(existingReq);
+                            return;
+                        }
+                    }
+                    openRequestModal({
+                        agent: dailyEditBtn.dataset.dailyEditAgent,
+                        startDate: dailyEditBtn.dataset.dailyEditDate,
+                        startPeriod: dailyEditBtn.dataset.dailyEditPeriod,
+                        endDate: dailyEditBtn.dataset.dailyEditDate,
+                        endPeriod: dailyEditBtn.dataset.dailyEditPeriod
+                    });
+                }
+            });
+
+            // Modification directe du droit à congés 2027 dans l'onglet Compteurs
+            document.addEventListener('change', (e) => {
+                const cpInput = e.target.closest('.cp-entitlement-input');
+                if (cpInput) {
+                    const agent = cpInput.dataset.cpAgent;
+                    const val = parseFloat(cpInput.value);
+                    state.cpEntitlements2027[agent] = isNaN(val) ? 25 : val;
+                    saveState();
+                    renderApp();
+                    showToast(`Droit CP 2027 mis à jour pour ${agent}.`);
+                }
+            });
+
+            // Filtres de l'onglet Historique
+            ['history-filter-agent', 'history-filter-motif', 'history-filter-source'].forEach(id => {
+                document.getElementById(id).addEventListener('change', renderHistoryTable);
+            });
+
+            // Exports CSV / JSON, Import JSON, Impression & Réinitialisation Excel
+            document.getElementById('btn-export-csv').addEventListener('click', exportToCSV);
+            document.getElementById('btn-export-json').addEventListener('click', exportToJSON);
+            document.getElementById('btn-print').addEventListener('click', () => window.print());
+
+            document.getElementById('input-import-json').addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        state = { ...createDefaultState(), ...imported };
+                        saveState();
+                        renderApp();
+                        showToast('Sauvegarde JSON importée avec succès.');
+                    } catch (err) {
+                        showToast('Fichier JSON invalide.', 'error');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            });
+
+            document.getElementById('btn-reset-excel').addEventListener('click', () => {
+                state = createDefaultState();
+                saveState();
+                renderApp();
+                showToast('Données Excel depuis Octobre 2026 restaurées.');
+            });
+        });
+    </script>
+</body>
+</html>
